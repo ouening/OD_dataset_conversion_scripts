@@ -1,0 +1,258 @@
+'''
+PASCAL VOC格式数据集转YOLO格式数据集
+适合项目地址：
+1. https://github.com/eriklindernoren/PyTorch-YOLOv3
+2. https://github.com/ultralytics/yolov3/
+3. https://github.com/AlexeyAB
+
+该项目对自定义的数据集格式要求图片要有对应的txt格式标注文件，要求图片存放在images文件夹，标签存放在labels文件夹，例如：
+
+data/custom/images/train.jpg
+data/custom/labels/train.txt
+yolo_classes.names
+yolo_classes_ssd.names
+
+当然，images文件夹和labels这两个文件夹名称可以更改，但相应的也要在代码中做修改（PyTorch-YOLOV3项目）：
+```utils/datasets.py: line 65
+class ListDataset(Dataset):
+    def __init__(self, list_path, img_size=416, augment=True, multiscale=True, normalized_labels=True):
+        with open(list_path, "r") as file:
+            self.img_files = file.readlines()
+
+        self.label_files = [
+            path.replace("images", "labels").replace(".png", ".txt").replace(".jpg", ".txt")
+            ##            ^^^^^^ and ^^^^^^ 修改这两处的值
+            for path in self.img_files
+        ]
+        self.img_size = img_size
+        self.max_objects = 100
+        self.augment = augment
+    ...
+```
+labels/train.txt的标注信息格式为：
+
+label_idx x_center y_center width height（归一化数值）
+label_idx x_center y_center width height（归一化数值）
+...
+
+
+'''
+import xml.etree.ElementTree as ET
+import pickle
+import os
+from os import listdir, getcwd
+from os.path import join
+import pandas as pd
+import random
+from collections import Counter
+import argparse
+from tqdm import tqdm
+from sklearn.model_selection import train_test_split
+import sys
+import shutil
+from pathlib import Path
+
+def counting_labels(anno_root,yolo_root):
+    '''
+    获取pascal voc格式数据集中的所有标签名
+    anno_root: pascal标注文件路径，一般为Annotations
+    '''
+    all_classes = []
+    
+    for xml_file in os.listdir(anno_root):
+        xml_file = os.path.join(anno_root, xml_file)
+        # print(xml_file)
+        xml = open(xml_file,encoding='utf-8')
+        tree=ET.parse(xml)
+        root = tree.getroot()
+        for obj in root.iter('object'):
+            
+            class_ = obj.find('name').text.strip()
+            all_classes.append(class_)
+    
+    print(Counter(all_classes))
+
+    labels = list(set(all_classes))
+    print('标签数据：', labels)
+    print('标签长度：', len(labels))
+    print('写入标签信息...{}'.format(os.path.join(yolo_root,'yolo_classes.names')))
+    with open( os.path.join(yolo_root,'yolo_classes.names') , 'w') as f:
+        for k in labels:
+            f.write(k)
+            f.write('\n')
+    with open( os.path.join(yolo_root,'yolo_classes_ssd.names') , 'w') as f:
+        for k in labels:
+            f.write("\'"+k+"\'"+',')
+            f.write('\n')
+    return labels
+
+
+def convert(size, box):
+    dw = 1./(size[0]) # 宽度缩放比例, size[0]为图像宽度width
+    dh = 1./(size[1])
+    x = (box[0] + box[1])/2.0 - 1
+    y = (box[2] + box[3])/2.0 - 1
+    w = box[1] - box[0]
+    h = box[3] - box[2]
+    x = x*dw
+    w = w*dw
+    y = y*dh
+    h = h*dh
+    return (x,y,w,h) # <x_center> <y_center> <width> <height>
+
+def convert_annotation(anno_root, image_id, classes, dest_yolo_dir='YOLOLabels'):
+    '''
+    anno_root:pascal格式标注文件路径，一般为Annotations
+    image_id：文件名（图片名和对应的pascal voc格式标注文件名是一致的）
+    dest_yolo_dir：yolo格式标注信息目标保存路径，默认为opt.yolo_dir
+    '''
+    in_file = open( os.path.join(anno_root, image_id+'.xml'), encoding='utf-8')
+    out_file = open(os.path.join(dest_yolo_dir, image_id+'.txt'), 'w')
+    tree=ET.parse(in_file)
+    root = tree.getroot()
+    size = root.find('size')
+    w = int(size.find('width').text)
+    h = int(size.find('height').text)
+
+    for obj in root.iter('object'):
+        difficult = obj.find('difficult').text
+        cls = obj.find('name').text
+        if cls not in classes or int(difficult)==1:
+            continue
+        cls_id = classes.index(cls)
+        xmlbox = obj.find('bndbox')
+        b = (float(xmlbox.find('xmin').text), float(xmlbox.find('xmax').text), float(xmlbox.find('ymin').text), float(xmlbox.find('ymax').text))
+        bb = convert((w,h), b)
+        out_file.write(str(cls_id) + " " + " ".join([str(a) for a in bb]) + '\n')
+
+def gen_image_ids(jpeg_root):
+    '''
+    jpeg_root: JPEGImages文件夹路径
+    '''
+    img_ids = []
+
+    for k in os.listdir(jpeg_root):
+        img_ids.append(k) # 图片名，含后缀
+    
+    return img_ids
+
+def create_dir(ROOT:str):
+    if not os.path.exists(ROOT):
+        os.mkdir(ROOT)
+    else:
+        shutil.rmtree(ROOT) # 先删除，再创建
+        os.mkdir(ROOT)
+
+
+
+if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--voc-root', type=str, required=True, 
+        help='VOC格式数据集根目录，该目录下必须包含JPEGImages和Annotations这两个文件夹')
+    parser.add_argument('--yolo-dir',type=str, default='YOLODataset',
+        help='yolo格式保存路径')
+    parser.add_argument('--valid-ratio',type=float, default=0.3,
+        help='验证集比例，默认为0.3')   
+    parser.add_argument('--ext',type=str, default='.jpg',
+        help='图像后缀')
+    opt = parser.parse_args()
+
+    voc_root = opt.voc_root
+    ext = opt.ext
+
+    print('Pascal VOC格式数据集路径：', voc_root)
+
+    jpeg_root = os.path.join(voc_root, 'JPEGImages')
+    anno_root = os.path.join(voc_root,'Annotations')
+    dest_yolo_dir = os.path.join(voc_root, opt.yolo_dir)
+
+    # 
+    image_ids = gen_image_ids(jpeg_root)
+    print('数据集长度：', len(image_ids))
+
+    if not os.path.exists(dest_yolo_dir):
+        os.makedirs(dest_yolo_dir)    # 创建labels文件夹,存储yolo格式标注文件
+
+    yolo_labels = os.path.join(dest_yolo_dir,'labels')
+    create_dir(yolo_labels)
+    yolo_images = os.path.join(dest_yolo_dir,'images')
+    create_dir(yolo_images)
+
+    classes = counting_labels(anno_root,dest_yolo_dir)
+    images_path = [] # 图片的绝对路径
+    length = len(image_ids)
+
+    for idx, img in enumerate(image_ids):
+        sys.stdout.write('\r>> Converting image %d/%d' % (
+                    idx + 1, length))
+        sys.stdout.flush()
+        # print('图片名称：', os.path.join(pwd, 'JPEGImages', img)) # 
+        images_path.append(os.path.join(voc_root, 'JPEGImages', img))
+        image_id = img[:-4] # 图像名称
+#        print('图像名称：', image_id)
+        # 转换标签
+        convert_annotation(anno_root, image_id, classes, dest_yolo_dir=yolo_labels)
+
+        shutil.copy(os.path.join(voc_root, 'JPEGImages', img), yolo_images)
+
+    ## 生成用于config/custom.data指定的训练训练集和验证集文件yolo_train.txt和yolo_valid.txt
+    # 该文件的内容就是每行为图片数据在文件系统中的绝对路径
+    
+    ratio = opt.valid_ratio     # 验证集比例
+    def write_txt(txt_path, data):
+            '''写入txt文件'''
+            with open(txt_path,'w') as f:
+                for d in data:
+                    f.write(str(d))
+                    f.write('\n')
+
+    if os.path.exists(os.path.join(voc_root, 'ImageSets/Main/trainval.txt')):
+        print('\n使用ImageSet信息分割数据集')
+        trainval_file = os.path.join(voc_root, 'ImageSets/Main/trainval.txt')
+        trainval_name = [i.strip() for i in open(trainval_file,'r').readlines()]
+        trainval = [os.path.join(yolo_images,name+ext) for name in trainval_name]
+
+        train_file = os.path.join(voc_root, 'ImageSets/Main/train.txt')
+        train_name = [i.strip() for i in open(train_file,'r').readlines()]
+        train = [os.path.join(yolo_images,name+ext) for name in train_name]
+
+        val_file = os.path.join(voc_root, 'ImageSets/Main/val.txt')
+        val_name = [i.strip() for i in open(val_file,'r').readlines()]
+        val = [os.path.join(yolo_images,name+ext) for name in val_name]
+
+        test_file = os.path.join(voc_root, 'ImageSets/Main/test.txt')
+        test_name = [i.strip() for i in open(test_file,'r').readlines()]
+        test = [os.path.join(yolo_images,name+ext) for name in test_name]
+        
+        print('训练集数量: ',len(train_name))
+        print('训练集验证集数量: ',len(trainval_name))
+        print('验证集数量: ',len(val_name))
+        print('测试集数量: ',len(test_name))
+
+    else:
+        print('\n使用YOLO格式图像信息分割数据集')
+        p = Path(yolo_images)
+        files = []
+        for file in p.iterdir():
+            name,sufix = file.name.split('.')
+            files.append(str(file))
+
+        trainval, test = train_test_split(files, test_size=ratio)
+        train, val = train_test_split(trainval,test_size=0.2)
+        print('训练集数量: ',len(train))
+        print('验证集数量: ',len(val))
+        print('测试集数量: ',len(test))
+
+    # 写入各个txt文件
+    trainval_txt = os.path.join(dest_yolo_dir,'trainval.txt')
+    write_txt(trainval_txt, trainval)
+
+    train_txt = os.path.join(dest_yolo_dir,'train.txt')
+    write_txt(train_txt, train)
+
+    val_txt = os.path.join(dest_yolo_dir,'val.txt')
+    write_txt(val_txt, val)
+
+    test_txt = os.path.join(dest_yolo_dir,'test.txt')
+    write_txt(test_txt, test)
