@@ -86,6 +86,9 @@ if __name__ == '__main__':
                 f.write(str(d))
                 f.write('\n')
     # 写入各个txt文件
+    trainvaltest_txt = os.path.join(ImgSetsMain,'trainvaltest.txt')
+    write_txt(trainvaltest_txt, files)
+    
     trainval_txt = os.path.join(ImgSetsMain,'trainval.txt')
     write_txt(trainval_txt, trainval)
 

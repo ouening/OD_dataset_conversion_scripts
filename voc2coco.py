@@ -86,6 +86,7 @@ def get_image_info(ann_path, annotation_root, extract_num_from_imgid=True):
     if extract_num_from_imgid and isinstance(img_id, str):
         # 采用正则表达式，支持转换的文件命名：0001.png, cls_0021.png, cls0123.jpg, 00123abc.png等
         img_id = int(re.findall(r'\d+', img_id)[0])
+        print(img_id)
 
     size = annotation_root.find('size')
     width = int(size.findtext('width'))
@@ -261,25 +262,21 @@ if __name__ == '__main__':
     if not os.path.exists(ImgSets):
         os.mkdir(ImgSets)
     ImgSetsMain = os.path.join(ImgSets,'Main')
+    # if os.path.exists(ImgSetsMain):
+    #     print('目录ImageSets/Main已经存在')
+    # else:
     create_dir(ImgSetsMain)
 
     COCOPROJ = os.path.join(voc_root, opt.coco_dir) # pascal voc转coco格式的存储路径
     create_dir(COCOPROJ)
 
-    COCOTRAIN = os.path.join(COCOPROJ,'train')
-    create_dir(COCOTRAIN)
+    txt_files = ['trainvaltest','train','val','trainval','test']
 
-    COCOVAL= os.path.join(COCOPROJ,'val')
-    create_dir(COCOVAL)
-
-    COCOTRAINVAL = os.path.join(COCOPROJ,'trainval')
-    create_dir(COCOTRAINVAL)
-
-    COCOTEST= os.path.join(COCOPROJ,'test')
-    create_dir(COCOTEST)
-
-    COCOALL= os.path.join(COCOPROJ,'trainvaltest')
-    create_dir(COCOALL)
+    coco_dirs = [] 
+    for dir_ in txt_files:
+        DIR = os.path.join(COCOPROJ, dir_)
+        coco_dirs.append(DIR)
+        create_dir(DIR)
 
     COCOANNO = os.path.join(COCOPROJ, 'annotations') # coco标注文件存放路径
     create_dir(COCOANNO)
@@ -298,29 +295,22 @@ if __name__ == '__main__':
     print('训练集数量: ',len(train))
     print('验证集数量: ',len(val))
     print('测试集数量: ',len(test))
+
     def write_txt(txt_path, data):
         with open(txt_path,'w') as f:
             for d in data:
                 f.write(str(d))
                 f.write('\n')
+    
     # 写入各个txt文件
-    trainvaltest_txt = os.path.join(ImgSetsMain,'trainvaltest.txt')
-    write_txt(trainvaltest_txt, files)
+    datas = [files, train, val, trainval, test]
 
-    trainval_txt = os.path.join(ImgSetsMain,'trainval.txt')
-    write_txt(trainval_txt, trainval)
-
-    train_txt = os.path.join(ImgSetsMain,'train.txt')
-    write_txt(train_txt, train)
-
-    val_txt = os.path.join(ImgSetsMain,'val.txt')
-    write_txt(val_txt, val)
-
-    test_txt = os.path.join(ImgSetsMain,'test.txt')
-    write_txt(test_txt, test)
+    for txt, data in zip(txt_files, datas):
+        txt_path = os.path.join(ImgSetsMain, txt+'.txt')
+        write_txt(txt_path, data)
 
     # 遍历xml文件，得到所有标签值，并且保存为labels.txt
-    if opt.labels:
+    if opt.labels==True:
         print('从自定义标签文件读取！')
         labels = opt.labels
     else:
@@ -334,9 +324,10 @@ if __name__ == '__main__':
     label2id = get_label2id(labels_path=labels)
     print('标签值及其对应的编码值：',label2id)
 
-    for name,imgs,PATH in tqdm(zip(['trainvaltest','train','val','trainval','test'],
-                                    [files, train,val,trainval,test],
-                                    [COCOALL, COCOTRAIN, COCOVAL, COCOTRAINVAL, COCOTEST])):
+    for name,imgs,PATH in tqdm(zip(txt_files,
+                                    datas,
+                                    coco_dirs)):
+        
         annotation_paths = []
         for img in imgs:
             annotation_paths.append(os.path.join(ANNO, img+'.xml'))
