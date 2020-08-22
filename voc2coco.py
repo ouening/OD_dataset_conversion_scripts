@@ -200,16 +200,20 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--voc-root', type=str, required=True, 
-        help='VOC格式数据集根目录，该目录下必须包含JPEGImages和Annotations这两个文件夹')
-    parser.add_argument('--coco-dir', type=str, default='CocoFormat', 
-        help='COCO数据集存储路径，默认为VOC数据集下新建文件夹CocoFormat')
+        help='VOC格式数据集根目录，该目录下必须包含存储图像和标注文件的两个文件夹')
+    parser.add_argument('--img_dir', type=str, required=False, 
+        help='VOC格式数据集图像存储路径，如果不指定，默认为JPEGImages')
+    parser.add_argument('--anno_dir', type=str, required=False, 
+        help='VOC格式数据集标注文件存储路径，如果不指定，默认为Annotations')
+    parser.add_argument('--coco-dir', type=str, default='CocoDataset', 
+        help='COCO数据集存储路径，默认为VOC数据集下新建文件夹CocoDataset')
     parser.add_argument('--test-ratio',type=float, default=0.2,
         help='验证集比例，默认为0.3')   
     parser.add_argument('--rename',type=bool, default=False,
         help='是否对VOC数据集进行数字化重命名')  
     parser.add_argument('--labels', type=str, required=True,
                         help='path to label list.')
-    parser.add_argument('--output', type=str, default='output.json', help='path to output json file')
+    parser.add_argument('--output', type=str, default='output.json', help='path to output .json file')
     parser.add_argument('--ext', type=str, default='.png', help='VOC图像数据后缀，注意带"." ' )
 
     opt = parser.parse_args()
@@ -220,13 +224,26 @@ if __name__ == '__main__':
 
     xml_file = []
     img_files = []
-    ANNO = os.path.join(voc_root, 'Annotations')
-    JPEG = os.path.join(voc_root, 'JPEGImages')
 
+    if opt.img_dir is None:
+        img_dir = 'JPEGImages'
+    else:
+        img_dir = opt.img_dir
+    JPEG = os.path.join(voc_root, img_dir)
+    if not os.path.exists(JPEG):
+        raise Exception(f'数据集图像路径{JPEG}不存在！')
+
+    if opt.anno_dir is None:
+        anno_dir = 'Annotations'
+    else:
+        anno_dir = opt.anno_dir
+    ANNO = os.path.join(voc_root, anno_dir)
+    if not os.path.exists(ANNO):
+        raise Exception(f'数据集图像路径{ANNO}不存在！')
     ##============================##
     ##   对文件进行数字化重命名    ##
     ##============================##
-    if opt.rename:
+    if opt.rename==True:
         renamed_jpeg = os.path.join(voc_root,'RenamedJPEGImages')
         create_dir(renamed_jpeg)
         renamed_xml = os.path.join(voc_root,'RenamedAnnotations')
@@ -256,7 +273,6 @@ if __name__ == '__main__':
         
         JPEG = renamed_jpeg     # 将重命名后的图像路径赋值给JPEG
         ANNO = renamed_xml      # 将重命名后的标注路径赋值给ANNO
-
 
     ImgSets = os.path.join(voc_root, 'ImageSets')
     if not os.path.exists(ImgSets):

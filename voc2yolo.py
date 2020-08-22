@@ -169,11 +169,11 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--voc-root', type=str, required=True, 
-        help='VOC格式数据集根目录，该目录下必须包含存储图像和标准文件的两个文件夹')
+        help='VOC格式数据集根目录，该目录下必须包含存储图像和标注文件的两个文件夹')
     parser.add_argument('--img_dir', type=str, required=False, 
         help='VOC格式数据集图像存储路径，如果不指定，默认为JPEGImages')
     parser.add_argument('--anno_dir', type=str, required=False, 
-        help='VOC格式数据集标准文件存储路径，如果不指定，默认为Annotations')
+        help='VOC格式数据集标注文件存储路径，如果不指定，默认为Annotations')
     parser.add_argument('--yolo-dir',type=str, default='YOLODataset',
         help='yolo格式数据集保存路径')
     parser.add_argument('--valid-ratio',type=float, default=0.3,
@@ -195,7 +195,7 @@ if __name__ == '__main__':
         raise Exception(f'数据集图像路径{jpeg_root}不存在！')
     
     if opt.anno_dir is None:
-        anno_dir = 'JPEGImages'
+        anno_dir = 'Annotations'
     else:
         anno_dir = opt.anno_dir
     anno_root = os.path.join(voc_root,anno_dir)
