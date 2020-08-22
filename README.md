@@ -5,6 +5,7 @@ Object detection dataset conversion scripts
 2. YOLO => PASCAL VOC: yolo2voc.py
 3. PASCAL VOC => COCO: voc2coco.py
 4. COCO => PASCAL VOC
+   
    Use `utils_cv.detection.data.coco2voc` to complete this conversion. The process is listed below:
    - Install **Microsoft utils_cv** package: `pip install git+https://github.com/microsoft/ComputerVision.git@master#egg=utils_cv`
    - Import fumction: `from utils_cv.detection.data import coco2voc`
