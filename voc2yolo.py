@@ -4,6 +4,7 @@ PASCAL VOC格式数据集转YOLO格式数据集
 1. https://github.com/eriklindernoren/PyTorch-YOLOv3
 2. https://github.com/ultralytics/yolov3/
 3. https://github.com/AlexeyAB
+4. https://github.com/ultralytics/yolov5/
 
 该项目对自定义的数据集格式要求图片要有对应的txt格式标注文件，要求图片存放在images文件夹，标签存放在labels文件夹，例如：
 
@@ -11,6 +12,9 @@ data/custom/images/train.jpg
 data/custom/labels/train.txt
 yolo_classes.names
 yolo_classes_ssd.names
+trainval.txt
+train.txt
+val.txt
 
 当然，images文件夹和labels这两个文件夹名称可以更改，但相应的也要在代码中做修改（PyTorch-YOLOV3项目）：
 ```utils/datasets.py: line 65
@@ -35,7 +39,23 @@ label_idx x_center y_center width height（归一化数值）
 label_idx x_center y_center width height（归一化数值）
 ...
 
+trainval.txt,val.txt,test.txt文件每一行记录了图像数据所在的全路径，这几个文件和yolo_classes.names
+会在U版和A版的YOLOv3/v4系列的*.data配置文件中使用。在U版的yolov5模型中，数据配置文件保存在data/*.yaml文件中，其示例内容如下：
+```
+# train and val data as 
+# 1) directory: path/images/, 
+# 2) file: path/images.txt, or 
+# 3) list: [path1/images/, path2/images/]
 
+train: /data/custom_yolo/trainval.txt
+val: /data/custom_yolo/test.txt
+
+# number of classes
+nc: 2
+
+# class names
+names: ['person', 'bicycle']
+```        
 '''
 import xml.etree.ElementTree as ET
 import pickle
@@ -100,7 +120,7 @@ def convert(size, box):
     h = h*dh
     return (x,y,w,h) # <x_center> <y_center> <width> <height>
 
-def convert_annotation(anno_root, image_id, classes, dest_yolo_dir='YOLOLabels'):
+def convert_annotation(anno_root:str, image_id, classes, dest_yolo_dir='YOLOLabels'):
     '''
     anno_root:pascal格式标注文件路径，一般为Annotations
     image_id：文件名（图片名和对应的pascal voc格式标注文件名是一致的）
@@ -149,9 +169,13 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--voc-root', type=str, required=True, 
-        help='VOC格式数据集根目录，该目录下必须包含JPEGImages和Annotations这两个文件夹')
+        help='VOC格式数据集根目录，该目录下必须包含存储图像和标准文件的两个文件夹')
+    parser.add_argument('--img_dir', type=str, required=False, 
+        help='VOC格式数据集图像存储路径，如果不指定，默认为JPEGImages')
+    parser.add_argument('--anno_dir', type=str, required=False, 
+        help='VOC格式数据集标准文件存储路径，如果不指定，默认为Annotations')
     parser.add_argument('--yolo-dir',type=str, default='YOLODataset',
-        help='yolo格式保存路径')
+        help='yolo格式数据集保存路径')
     parser.add_argument('--valid-ratio',type=float, default=0.3,
         help='验证集比例，默认为0.3')   
     parser.add_argument('--ext',type=str, default='.jpg',
@@ -162,9 +186,23 @@ if __name__ == '__main__':
     ext = opt.ext
 
     print('Pascal VOC格式数据集路径：', voc_root)
+    if opt.img_dir is None:
+        img_dir = 'JPEGImages'
+    else:
+        img_dir = opt.img_dir
+    jpeg_root = os.path.join(voc_root, img_dir)
+    if not os.path.exists(jpeg_root):
+        raise Exception(f'数据集图像路径{jpeg_root}不存在！')
+    
+    if opt.anno_dir is None:
+        anno_dir = 'JPEGImages'
+    else:
+        anno_dir = opt.anno_dir
+    anno_root = os.path.join(voc_root,anno_dir)
+    if not os.path.exists(anno_root):
+        raise Exception(f'数据集图像路径{anno_root}不存在！')
 
-    jpeg_root = os.path.join(voc_root, 'JPEGImages')
-    anno_root = os.path.join(voc_root,'Annotations')
+    #  YOLO数据集存储路径
     dest_yolo_dir = os.path.join(voc_root, opt.yolo_dir)
 
     # 
