@@ -27,20 +27,33 @@ bird,2
 
 '''
 import csv
+import shutil
 import os
-import glob
+from pathlib import Path
 import sys
 import xml.etree.ElementTree as ET
-import random
+import numpy as np
 import argparse
 from sklearn.model_selection import train_test_split
 # 获取当前文件所在文件夹
 dirname = os.path.dirname(os.path.abspath(__file__))
 print('当前工作路径：',dirname)
 
+def create_dir(ROOT:str):
+    if not os.path.exists(ROOT):
+        os.mkdir(ROOT)
+    else:
+        shutil.rmtree(ROOT) # 先删除，再创建
+        os.mkdir(ROOT)
+
 class PascalVOC2CSV(object):
-    def __init__(self, voc_root, xml, imgs, ratio, train_ann='train_csv_annotations.csv',
-            val_ann='val_csv_annotations.csv',classes_path='csv_classes.csv', ):
+    def __init__(self, voc_root, xml, imgs, ratio, 
+                trainvaltest_ann='trainvaltest_csv_annotations.csv',
+                trainval_ann='trainval_csv_annotations.csv',
+                train_ann='train_csv_annotations.csv',
+                val_ann='val_csv_annotations.csv',
+                test_ann='test_csv_annotations.csv',
+                classes_path='csv_classes.csv', ):
         '''
         :param voc_root: VOC数据集根目录
         :param xml: 所有Pascal VOC的xml文件路径组成的列表
@@ -54,9 +67,16 @@ class PascalVOC2CSV(object):
         '''
         self.xml = xml
         self.imgs = imgs
-        self.train_ann = os.path.join(voc_root, train_ann)
-        self.val_ann = os.path.join(voc_root, val_ann)
-        self.classes_path = os.path.join(voc_root, classes_path)
+        csv_root = os.path.join(voc_root,'CSVDataset')
+        create_dir(csv_root)
+        self.trainvaltest_ann = os.path.join(csv_root, trainvaltest_ann)
+        self.trainval_ann = os.path.join(csv_root, trainval_ann)
+        self.train_ann = os.path.join(csv_root, train_ann)
+        self.val_ann = os.path.join(csv_root, val_ann)
+        self.test_ann = os.path.join(csv_root, test_ann)
+        
+
+        self.classes_path = os.path.join(csv_root, classes_path)
         self.label=[]
         self.annotations=[]
         self.ratio = ratio
@@ -102,21 +122,36 @@ class PascalVOC2CSV(object):
         # k = int(len(self.annotations) * self.ratio) # ratio是验证集比例
         print('\n按照比例：{:.2f}:{:.2f} 划分训练集和测试集...'.format(1-self.ratio, self.ratio))
         
-        self.train, self.valid = train_test_split(self.annotations, test_size=self.ratio)
+        self.trainval, self.test = train_test_split(self.annotations, test_size=self.ratio)
+        self.train, self.val = train_test_split(self.trainval, test_size=0.2)
         print('训练集数量：', len(self.train))
-        print('验证集数量：', len(self.valid))
+        print('验证集数量：', len(self.val))
+        print('测试集数量：', len(self.test))
         sys.stdout.write('\n')
         sys.stdout.flush()
  
     def write_file(self,):
-        print(f'写入验证集:{self.val_ann}')
+        print(f'写入全部数据集:{self.trainvaltest_ann}')
+        with open(self.trainvaltest_ann, 'w', newline='') as fp:
+            csv_writer = csv.writer(fp, dialect='excel')
+            csv_writer.writerows(self.annotations)
+        print(f'写入训练集:{self.trainval_ann}')
+        with open(self.trainval_ann, 'w', newline='') as fp:
+            csv_writer = csv.writer(fp, dialect='excel')
+            csv_writer.writerows(self.trainval)
+        print(f'写入训练集:{self.train_ann}')
         with open(self.val_ann, 'w', newline='') as fp:
             csv_writer = csv.writer(fp, dialect='excel')
-            csv_writer.writerows(self.valid)
-        print(f'写入训练集:{self.train_ann}')
-        with open(self.train_ann, 'w', newline='') as fp:
-            csv_writer = csv.writer(fp, dialect='excel')
             csv_writer.writerows(self.train)
+        print(f'写入验证集:{self.train_ann}')
+        with open(self.val_ann, 'w', newline='') as fp:
+            csv_writer = csv.writer(fp, dialect='excel')
+            csv_writer.writerows(self.val)
+        print(f'写入测试集:{self.test_ann}')
+        with open(self.test_ann, 'w', newline='') as fp:
+            csv_writer = csv.writer(fp, dialect='excel')
+            csv_writer.writerows(self.test)
+
         class_name=sorted(self.label)
         print('标签名称：', class_name)
        
@@ -129,12 +164,44 @@ class PascalVOC2CSV(object):
             csv_writer = csv.writer(fp, dialect='excel')
             csv_writer.writerows(class_)
 
+def check_files(ann_root, img_root):
+    '''检测图像名称和xml标准文件名称是否一致，检查图像后缀'''
+    if os.path.exists(ann_root):
+        ann = Path(ann_root)
+    else:
+        raise Exception("标注文件路径错误")
+    if os.path.exists(img_root):
+        img = Path(img_root)
+    else:
+        raise Exception("图像文件路径错误")
+    ann_files = []
+    img_files = []
+    img_exts = []
+    for an, im in zip(ann.iterdir(),img.iterdir()):
+        ann_files.append(an.stem)
+        img_files.append(im.stem)
+        img_exts.append(im.suffix)
+
+    print('图像后缀列表：', np.unique(img_exts))
+    if len(np.unique(img_exts)) > 1:
+        # print('数据集包含多种格式图像，请检查！', np.unique(img_exts))
+        raise Exception('数据集包含多种格式图像，请检查！', np.unique(img_exts))
+    if set(ann_files)==set(img_files):
+        print('标注文件和图像文件匹配')
+    else:
+        print('标注文件和图像文件不匹配')
+    
+    return np.unique(img_exts)[0]
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--voc-root', type=str, required=True, 
         help='VOC格式数据集根目录，该目录下必须包含JPEGImages和Annotations这两个文件夹')
+    parser.add_argument('--img_dir', type=str, required=False, 
+        help='VOC格式数据集图像存储路径，如果不指定，默认为JPEGImages')
+    parser.add_argument('--anno_dir', type=str, required=False, 
+        help='VOC格式数据集标注文件存储路径，如果不指定，默认为Annotations')
     parser.add_argument('--valid-ratio',type=float, default=0.3,
         help='验证集比例，默认为0.3')   
     opt = parser.parse_args()
@@ -144,8 +211,20 @@ if __name__ == '__main__':
 
     xml_file = []
     img_files = []
-    ANNO = os.path.join(voc_root, 'Annotations')
-    JPEG = os.path.join(voc_root, 'JPEGImages')
+    
+    if opt.img_dir is None:
+        img_dir = 'JPEGImages'
+    else:
+        img_dir = opt.img_dir
+    JPEG = os.path.join(voc_root, img_dir)
+    
+    if opt.anno_dir is None:
+        anno_dir = 'Annotations'
+    else:
+        anno_dir = opt.anno_dir
+    ANNO = os.path.join(voc_root, anno_dir)
+
+    check_files(ANNO, JPEG)
 
     for k in os.listdir(JPEG):
         '''

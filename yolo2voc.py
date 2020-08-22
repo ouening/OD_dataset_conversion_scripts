@@ -126,22 +126,40 @@ def mkdir(path):
         print(path + ' 目录已存在')
         return False
 
+def check_files(img_root):
+    '''检测图像名称和xml标准文件名称是否一致，检查图像后缀'''
+    
+    if os.path.exists(img_root):
+        img = Path(img_root)
+    else:
+        raise Exception("图像文件路径错误")
+    img_exts = []
+    for im in img.iterdir():
+        img_exts.append(im.suffix)
+
+    print('图像后缀列表：', np.unique(img_exts))
+    if len(np.unique(img_exts)) > 1:
+        # print('数据集包含多种格式图像，请检查！', np.unique(img_exts))
+        raise Exception('数据集包含多种格式图像，请检查！', np.unique(img_exts))
+    
+    return np.unique(img_exts)[0]
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--yolo-root', type=str, required=True, 
         help='VOC格式数据集根目录，该目录下必须包含images和labels这两个文件夹，以及classes.txt标签名文件')
-    parser.add_argument('--voc-dir',type=str, default='VOC2020',
-        help='aPascal VOC格式数据集存储路径，默认为yolo数据集路径下新建文件夹VOC2020')
-    parser.add_argument('--ext', type=str, default='.png', help='图像后缀，默认为.png')
+    parser.add_argument('--voc-dir',type=str, default='VOCDataset',
+        help='aPascal VOC格式数据集存储路径，默认为yolo数据集路径下新建文件夹VOCDataset')
+    # parser.add_argument('--ext', type=str, default='.png', help='图像后缀，默认为.png')
     parser.add_argument('--test_ratio', type=float, default=0.2, help='测试集比例，（0,1）之间的浮点数')
     
     opt = parser.parse_args()
-    ext = opt.ext
+    # ext = opt.ext
 
     IMG_DIR = os.path.join(opt.yolo_root, "images")
     LABEL_DIR = os.path.join(opt.yolo_root, "labels")
+    ext = check_files(IMG_DIR)
 
     VOCROOT = os.path.join(opt.yolo_root, opt.voc_dir)
     if not os.path.exists(VOCROOT):

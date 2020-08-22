@@ -20,7 +20,7 @@ if __name__ == '__main__':
     opt = parser.parse_args()
 
     if opt.out_dir is None:
-        out_dir = Path(opt.anno_path).parent.parent / 'VOCDataset'
+        out_dir = Path(opt.anno_path).parent.parent / 'VOCAnnotations'
     else:
         out_dir = opt.out_dir
     coco2voc(anno_path=opt.anno_path, output_dir=out_dir, anno_type=opt.anno_type)

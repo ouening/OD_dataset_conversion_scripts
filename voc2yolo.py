@@ -63,7 +63,7 @@ import os
 from os import listdir, getcwd
 from os.path import join
 import pandas as pd
-import random
+import numpy as np
 from collections import Counter
 import argparse
 from tqdm import tqdm
@@ -163,6 +163,34 @@ def create_dir(ROOT:str):
         shutil.rmtree(ROOT) # 先删除，再创建
         os.mkdir(ROOT)
 
+def check_files(ann_root, img_root):
+    '''检测图像名称和xml标准文件名称是否一致，检查图像后缀'''
+    if os.path.exists(ann_root):
+        ann = Path(ann_root)
+    else:
+        raise Exception("标注文件路径错误")
+    if os.path.exists(img_root):
+        img = Path(img_root)
+    else:
+        raise Exception("图像文件路径错误")
+    ann_files = []
+    img_files = []
+    img_exts = []
+    for an, im in zip(ann.iterdir(),img.iterdir()):
+        ann_files.append(an.stem)
+        img_files.append(im.stem)
+        img_exts.append(im.suffix)
+
+    print('图像后缀列表：', np.unique(img_exts))
+    if len(np.unique(img_exts)) > 1:
+        # print('数据集包含多种格式图像，请检查！', np.unique(img_exts))
+        raise Exception('数据集包含多种格式图像，请检查！', np.unique(img_exts))
+    if set(ann_files)==set(img_files):
+        print('标注文件和图像文件匹配')
+    else:
+        print('标注文件和图像文件不匹配')
+    
+    return np.unique(img_exts)[0]
 
 
 if __name__ == '__main__':
@@ -178,12 +206,11 @@ if __name__ == '__main__':
         help='yolo格式数据集保存路径')
     parser.add_argument('--valid-ratio',type=float, default=0.3,
         help='验证集比例，默认为0.3')   
-    parser.add_argument('--ext',type=str, default='.jpg',
-        help='图像后缀')
+ 
     opt = parser.parse_args()
 
     voc_root = opt.voc_root
-    ext = opt.ext
+    # ext = opt.ext
 
     print('Pascal VOC格式数据集路径：', voc_root)
     if opt.img_dir is None:
@@ -201,10 +228,11 @@ if __name__ == '__main__':
     anno_root = os.path.join(voc_root,anno_dir)
     if not os.path.exists(anno_root):
         raise Exception(f'数据集图像路径{anno_root}不存在！')
-
+    
+    # 确定图像后缀
+    ext = check_files(anno_root, jpeg_root)
     #  YOLO数据集存储路径
     dest_yolo_dir = os.path.join(voc_root, opt.yolo_dir)
-
     # 
     image_ids = gen_image_ids(jpeg_root)
     print('数据集长度：', len(image_ids))

@@ -55,17 +55,17 @@ if __name__ == '__main__':
         help='VOC格式数据集根目录，该目录下必须包含JPEGImages，Annotations和ImageSets这三个文件夹')
     parser.add_argument("--train_annotation", default="voc_train.txt")
     parser.add_argument("--test_annotation",  default="voc_test.txt")
-    flags = parser.parse_args()
+    opt = parser.parse_args()
 
-    if os.path.exists(os.path.join( flags.voc_root, flags.train_annotation)):
-        os.remove(os.path.join(flags.voc_root, flags.train_annotation))
-    if os.path.exists(os.path.join( flags.voc_root, flags.test_annotation)):
-        os.remove(os.path.join(flags.voc_root, flags.test_annotation))
+    if os.path.exists(os.path.join( opt.voc_root, opt.train_annotation)):
+        os.remove(os.path.join(opt.voc_root, opt.train_annotation))
+    if os.path.exists(os.path.join( opt.voc_root, opt.test_annotation)):
+        os.remove(os.path.join(opt.voc_root, opt.test_annotation))
 
     # trainval包括训练和验证，在此全部当作训练集使用
-    num1 = convert_voc_annotation(flags.voc_root, 'trainval', flags.train_annotation, False)
+    num1 = convert_voc_annotation(opt.voc_root, 'trainval', opt.train_annotation, False)
     
-    num2 = convert_voc_annotation(flags.voc_root, 'test', flags.test_annotation, False)
+    num2 = convert_voc_annotation(opt.voc_root, 'test', opt.test_annotation, False)
     print('=> The number of image for train is: %d\nThe number of image for test is:%d' %(num1, num2))
 
 

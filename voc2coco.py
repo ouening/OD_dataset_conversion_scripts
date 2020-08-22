@@ -48,12 +48,11 @@ KeyError: '0'
 原因是image_id值是[]，直接报错，因此需要考虑将VOC格式下的文件名全部重命名为数字后再进行转换，使用参数选项--rename即可
 
 '''
-
 from pathlib import Path
 import os
 import sys
 import xml.etree.ElementTree as ET
-import random
+import numpy as np
 import argparse
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
@@ -86,7 +85,6 @@ def get_image_info(ann_path, annotation_root, extract_num_from_imgid=True):
     if extract_num_from_imgid and isinstance(img_id, str):
         # 采用正则表达式，支持转换的文件命名：0001.png, cls_0021.png, cls0123.jpg, 00123abc.png等
         img_id = int(re.findall(r'\d+', img_id)[0])
-        print(img_id)
 
     size = annotation_root.find('size')
     width = int(size.findtext('width'))
@@ -196,7 +194,36 @@ def create_dir(ROOT:str):
     else:
         shutil.rmtree(ROOT) # 先删除，再创建
         os.mkdir(ROOT)
-        
+
+def check_files(ann_root, img_root):
+    '''检测图像名称和xml标准文件名称是否一致，检查图像后缀'''
+    if os.path.exists(ann_root):
+        ann = Path(ann_root)
+    else:
+        raise Exception("标注文件路径错误")
+    if os.path.exists(img_root):
+        img = Path(img_root)
+    else:
+        raise Exception("图像文件路径错误")
+    ann_files = []
+    img_files = []
+    img_exts = []
+    for an, im in zip(ann.iterdir(),img.iterdir()):
+        ann_files.append(an.stem)
+        img_files.append(im.stem)
+        img_exts.append(im.suffix)
+
+    print('图像后缀列表：', np.unique(img_exts))
+    if len(np.unique(img_exts)) > 1:
+        # print('数据集包含多种格式图像，请检查！', np.unique(img_exts))
+        raise Exception('数据集包含多种格式图像，请检查！', np.unique(img_exts))
+    if set(ann_files)==set(img_files):
+        print('标注文件和图像文件匹配')
+    else:
+        print('标注文件和图像文件不匹配')
+    
+    return np.unique(img_exts)[0]
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
@@ -212,13 +239,13 @@ if __name__ == '__main__':
         help='验证集比例，默认为0.3')   
     parser.add_argument('--rename',type=bool, default=False,
         help='是否对VOC数据集进行数字化重命名')  
-    parser.add_argument('--labels', type=str, required=True,
+    parser.add_argument('--label-file', type=str, required=False,
                         help='path to label list.')
     parser.add_argument('--output', type=str, default='output.json', help='path to output .json file')
     parser.add_argument('--ext', type=str, default='.png', help='VOC图像数据后缀，注意带"." ' )
 
     opt = parser.parse_args()
-    ext = opt.ext  # 图像数据集后缀
+    # ext = opt.ext  # 图像数据集后缀
 
     voc_root = opt.voc_root
     print('Pascal VOC格式数据集路径：', voc_root)
@@ -241,6 +268,8 @@ if __name__ == '__main__':
     ANNO = os.path.join(voc_root, anno_dir)
     if not os.path.exists(ANNO):
         raise Exception(f'数据集图像路径{ANNO}不存在！')
+
+    ext = check_files(ANNO, JPEG)
     ##============================##
     ##   对文件进行数字化重命名    ##
     ##============================##
@@ -327,9 +356,9 @@ if __name__ == '__main__':
         write_txt(txt_path, data)
 
     # 遍历xml文件，得到所有标签值，并且保存为labels.txt
-    if opt.labels==True:
+    if opt.label_file:
         print('从自定义标签文件读取！')
-        labels = opt.labels
+        labels = opt.label_file
     else:
         print('从xml文件自动处理标签！')
         counting_labels(ANNO)
