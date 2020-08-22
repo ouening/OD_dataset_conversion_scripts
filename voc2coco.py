@@ -148,6 +148,7 @@ def get_coco_annotation_from_obj(obj, label2id):
         'bbox': [xmin, ymin, o_width, o_height],
         'category_id': category_id,
         'ignore': 0,
+        # 起始点是左上角，按照顺时针方向
         'segmentation': [[xmin, ymin, xmax, ymin, xmax, ymax, xmin, ymax]] 
     }
     return ann
