@@ -151,11 +151,9 @@ if __name__ == "__main__":
         help='VOC格式数据集根目录，该目录下必须包含images和labels这两个文件夹，以及classes.txt标签名文件')
     parser.add_argument('--voc-dir',type=str, default='VOCDataset',
         help='aPascal VOC格式数据集存储路径，默认为yolo数据集路径下新建文件夹VOCDataset')
-    # parser.add_argument('--ext', type=str, default='.png', help='图像后缀，默认为.png')
     parser.add_argument('--test_ratio', type=float, default=0.2, help='测试集比例，（0,1）之间的浮点数')
     
     opt = parser.parse_args()
-    # ext = opt.ext
 
     IMG_DIR = os.path.join(opt.yolo_root, "images")
     LABEL_DIR = os.path.join(opt.yolo_root, "labels")

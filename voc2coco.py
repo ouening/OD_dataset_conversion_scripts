@@ -242,10 +242,9 @@ if __name__ == '__main__':
     parser.add_argument('--label-file', type=str, required=False,
                         help='path to label list.')
     parser.add_argument('--output', type=str, default='output.json', help='path to output .json file')
-    parser.add_argument('--ext', type=str, default='.png', help='VOC图像数据后缀，注意带"." ' )
+    # parser.add_argument('--ext', type=str, default='.png', help='VOC图像数据后缀，注意带"." ' )
 
     opt = parser.parse_args()
-    # ext = opt.ext  # 图像数据集后缀
 
     voc_root = opt.voc_root
     print('Pascal VOC格式数据集路径：', voc_root)

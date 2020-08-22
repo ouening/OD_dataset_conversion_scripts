@@ -210,7 +210,6 @@ if __name__ == '__main__':
     opt = parser.parse_args()
 
     voc_root = opt.voc_root
-    # ext = opt.ext
 
     print('Pascal VOC格式数据集路径：', voc_root)
     if opt.img_dir is None:
