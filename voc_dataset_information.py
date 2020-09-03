@@ -58,10 +58,10 @@ def load_dataset(xml_list, anno_root, savefig=True):
                 width,
                 height,
                 obj.find('name').text.strip(),
-                int(obj.findtext("bndbox/xmin")),
-                int(obj.findtext("bndbox/ymin")),
-                int(obj.findtext("bndbox/xmax")),
-                int(obj.findtext("bndbox/ymax"))
+                int(float(obj.findtext("bndbox/xmin"))),
+                int(float(obj.findtext("bndbox/ymin"))),
+                int(float(obj.findtext("bndbox/xmax"))),
+                int(float(obj.findtext("bndbox/ymax")))
             )
             if value[3]=='paches':
                 print(xml_file)
