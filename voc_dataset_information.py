@@ -180,5 +180,3 @@ if __name__ == '__main__':
         xml_list = [os.path.join(anno_root, xml_name+'.xml') for xml_name in xml_files]
         df = load_dataset(xml_list, anno_root, savefig=True, img_name=data_type)
         df.to_csv(os.path.join(voc_stat,f'{data_type}_info.csv'), index=False)
-
-
