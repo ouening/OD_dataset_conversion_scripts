@@ -32,7 +32,8 @@ from tqdm import tqdm
 import seaborn as sns
 from matplotlib.transforms import Bbox
 
-def load_dataset(xml_list, anno_root, savefig=True):
+
+def load_dataset(xml_list, anno_root, savefig=True,img_name=''):
     '''计算标签
     xml_list: xml标注文件名称列表
     anno_root: 标注文件路径
@@ -83,8 +84,7 @@ def load_dataset(xml_list, anno_root, savefig=True):
     def area(df):
         return (df['box_width']*df['box_height'])/(df['width']*df['height'])
     xml_df['box_area'] = xml_df.apply(area, axis=1)
-    # xml_df['color'] = xml_df.apply(color, axis=1)
-
+    
     count = dict(Counter(xml_df['class']))
     print()
     print('标签类别：\n', np.unique(xml_df['class']))
@@ -105,51 +105,7 @@ def load_dataset(xml_list, anno_root, savefig=True):
         np.mean(df['ymax']-df['ymin'])))
 
     if savefig:
-        # plt.figure(figsize=(12, 15))
-        # plt.figure()
-        # df = pd.Series(list(count.values()), index=count.keys())
-        # df = df.sort_values(ascending=True)
-        # df.plot.barh()
-        # file_path = os.path.join(voc_stat,'各类别数量占比.png')
-        # print('图像存储路径：',file_path)
-        # plt.xlabel('number of instances')
-        # plt.title('Distribution of different classes')
-        # plt.savefig( file_path, dpi=300,bbox_inches = 'tight')
-        # print('保存类别数量分布结果')
-        # # plt.show()
-
-        # plt.figure()
-        # sns.distplot(a=xml_df['box_area'], bins=100, hist=True, kde=True, rug=False, )
-        # plt.title('Histogram Plot of Bounding Boxes')
-        # plt.savefig( os.path.join(voc_stat,'锚框面积占比.png'), dpi=300,bbox_inches = 'tight')
-        # print('保存锚框面积占比结果')
-        # plt.show()
-
-        # plt.figure()
-        # sns.scatterplot(x='box_width', y='box_height', hue='class', data=xml_df)
-        # plt.title('Scatter Plot of Bounding Boxes')
-        # plt.savefig( os.path.join(voc_stat,'锚框长宽比例分布.png'), dpi=300,bbox_inches = 'tight')
-        # print('保存锚框长宽比例分布结果')
-        # plt.show()
-
-        # plt.figure()
-        # plt.hist(xml_df['box_width']*xml_df['box_height'], bins=50)
-        # plt.title('Histogram Plot of Bounding Areas')
-        # plt.savefig( os.path.join(voc_stat,'锚框面积直方图分布.png'), dpi=300,bbox_inches = 'tight')
-        # print('保存锚框面积直方图分布结果')
-        # plt.show()
-
-        # plt.figure()
-        # sns.scatterplot(x='width', y='height', hue='class', data=xml_df)
-        # plt.title('Scatter Plot of Images')
-        # plt.savefig( os.path.join(voc_root,'图像长宽比例分布.png'), dpi=300,bbox_inches = 'tight')
-
-        # plt.figure()
-        # plt.hist(xml_df['width']*xml_df['height'], bins=50)
-        # plt.title('Histogram Plot of Image Areas')
-        # plt.savefig( os.path.join(voc_root,'图像面积直方图分布.png'), dpi=300,bbox_inches = 'tight')
-        # plt.show()
-        # plt.figure(figsize=(12, 15))
+        
         plt.figure(figsize=(9,9))
         plt.subplot(2,2,1)
         count = dict(Counter(xml_df['class']))
@@ -170,11 +126,6 @@ def load_dataset(xml_list, anno_root, savefig=True):
             df_ = xml_df[xml_df['class']==c][['box_width','box_height']]
             plt.scatter(df_['box_width'], df_['box_height'],label=c)
 
-        # df_lost = xml_df[xml_df['class']=='lost'][['box_width','box_height']]
-        # df_normal = xml_df[xml_df['class']=='normal'][['box_width','box_height']]
-
-        # plt.scatter(df_lost['box_width'], df_lost['box_height'],label='lost')
-        # plt.scatter(df_normal['box_width'], df_normal['box_height'],label='normal',alpha=0.6)
         plt.title('Scatter Plot of Boxes')
         plt.legend(loc='best')
 
@@ -182,8 +133,8 @@ def load_dataset(xml_list, anno_root, savefig=True):
         plt.hist(xml_df['box_width']*xml_df['box_height'], bins=50)
         plt.title('Histogram Plot of Box Areas')
 
-        plt.savefig(os.path.join(voc_stat,'output.png'), dpi=800,bbox_inches='tight', pad_inches=0.0)
-        # plt.show()
+        plt.savefig(os.path.join(voc_stat,f'{img_name}_output.png'), dpi=800,bbox_inches='tight', pad_inches=0.0)
+
 
     return xml_df
 
@@ -222,12 +173,12 @@ if __name__ == '__main__':
         print(f"\n\n=========统计{data_type}数据信息============")
         txt = os.path.join(voc_root, f'ImageSets/Main/{data_type}.txt')
         if not os.path.exists(txt):
-            # raise Exception(f'文件ImageSets/Main/{data_type}.txt不存在!')
+            
             print(f'文件ImageSets/Main/{data_type}.txt不存在!')
             continue
         xml_files = [x.strip() for x in open(txt,'r').readlines()]
         xml_list = [os.path.join(anno_root, xml_name+'.xml') for xml_name in xml_files]
-        df = load_dataset(xml_list, anno_root, savefig=False)
+        df = load_dataset(xml_list, anno_root, savefig=True, img_name=data_type)
         df.to_csv(os.path.join(voc_stat,f'{data_type}_info.csv'), index=False)
 
 
