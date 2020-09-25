@@ -86,7 +86,9 @@ def load_dataset(xml_list, anno_root, savefig=True):
     # xml_df['color'] = xml_df.apply(color, axis=1)
 
     count = dict(Counter(xml_df['class']))
-    print('\n标签名称及数量：\n', xml_df['class'].value_counts())
+    print()
+    print('标签类别：\n', np.unique(xml_df['class']))
+    print('标签名称及数量：\n', xml_df['class'].value_counts())
     print('总标签数量：', len(count))
         
     ## 图像大小
