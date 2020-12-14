@@ -203,7 +203,7 @@ if __name__ == '__main__':
     parser.add_argument('--anno_dir', type=str, required=False, 
         help='VOC格式数据集标注文件存储路径，如果不指定，默认为Annotations')
     parser.add_argument('--yolo-dir',type=str, default='YOLODataset',
-        help='yolo格式数据集保存路径')
+        help='yolo格式数据集保存路径，默认为VOC数据集相同路径下新建文件夹YOLODataset')
     parser.add_argument('--valid-ratio',type=float, default=0.3,
         help='验证集比例，默认为0.3')   
  
@@ -230,8 +230,10 @@ if __name__ == '__main__':
     
     # 确定图像后缀
     ext = check_files(anno_root, jpeg_root)
+    assert ext is not None, "请检查图像后缀是否正确！"
+
     #  YOLO数据集存储路径
-    dest_yolo_dir = os.path.join(voc_root, opt.yolo_dir)
+    dest_yolo_dir = os.path.join(str(Path(voc_root).parent), opt.yolo_dir)
     # 
     image_ids = gen_image_ids(jpeg_root)
     print('数据集长度：', len(image_ids))

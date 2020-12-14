@@ -234,7 +234,7 @@ if __name__ == '__main__':
     parser.add_argument('--anno_dir', type=str, required=False, 
         help='VOC格式数据集标注文件存储路径，如果不指定，默认为Annotations')
     parser.add_argument('--coco-dir', type=str, default='CocoDataset', 
-        help='COCO数据集存储路径，默认为VOC数据集下新建文件夹CocoDataset')
+        help='COCO数据集存储路径，默认为VOC数据集相同路径下新建文件夹CocoDataset')
     parser.add_argument('--test-ratio',type=float, default=0.2,
         help='验证集比例，默认为0.3')   
     parser.add_argument('--rename',type=bool, default=False,
@@ -264,11 +264,12 @@ if __name__ == '__main__':
         anno_dir = 'Annotations'
     else:
         anno_dir = opt.anno_dir
-    ANNO = os.path.join(voc_root, anno_dir)
+    ANNO = os.path.join(voc_root, anno_dir)  # 
     if not os.path.exists(ANNO):
         raise Exception(f'数据集图像路径{ANNO}不存在！')
 
-    ext = check_files(ANNO, JPEG)
+    ext = check_files(ANNO, JPEG) # 检查图像后缀
+    assert ext is not None, "请检查图像后缀是否正确！"
     ##============================##
     ##   对文件进行数字化重命名    ##
     ##============================##
@@ -307,12 +308,11 @@ if __name__ == '__main__':
     if not os.path.exists(ImgSets):
         os.mkdir(ImgSets)
     ImgSetsMain = os.path.join(ImgSets,'Main')
-    # if os.path.exists(ImgSetsMain):
-    #     print('目录ImageSets/Main已经存在')
-    # else:
+
     create_dir(ImgSetsMain)
 
-    COCOPROJ = os.path.join(voc_root, opt.coco_dir) # pascal voc转coco格式的存储路径
+    #== COCO 数据集路径
+    COCOPROJ = os.path.join(str(Path(voc_root).parent), opt.coco_dir) # pascal voc转coco格式的存储路径
     create_dir(COCOPROJ)
 
     txt_files = ['trainvaltest','train','val','trainval','test']
