@@ -1,19 +1,29 @@
+'''
+本脚本将YOLO格式的数据集转换成VOC格式，数据集组织格式为：
+
+|--data       # 数据集根目录
+|----images   # 存储图像数据
+|------0.png
+|------1.png
+|------...
+|----labels   # 存储yolo格式的标注数据：class x_center y_center width height，class索引从0开始，xywh的范围是（0，1）
+|------0.txt
+|------1.txt
+|------...
+|----classes.txt
+
+'''
 import xml.etree.ElementTree as ET
-import pickle
 import os
-from os import getcwd
 import numpy as np
 from PIL import Image
 import shutil
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-import imgaug as ia
-from imgaug import augmenters as iaa
 import argparse
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 from pathlib import Path
-ia.seed(1)
 
 
 def yolo_to_voc_format(x_center, y_center, width, height, img_width, img_height):
@@ -157,12 +167,13 @@ if __name__ == "__main__":
 
     IMG_DIR = os.path.join(opt.yolo_root, "images")
     LABEL_DIR = os.path.join(opt.yolo_root, "labels")
-    ext = check_files(IMG_DIR)
+    ext = check_files(IMG_DIR) #检查文件后缀
 
     VOCROOT = os.path.join(opt.yolo_root, opt.voc_dir)
     if not os.path.exists(VOCROOT):
         os.mkdir(VOCROOT)
     # 读取标签名
+    assert os.path.isfile(os.path.join(opt.yolo_root, 'classes.txt')), "请检查标签文件！"
     classes = [x.strip() for x in open( os.path.join(opt.yolo_root, 'classes.txt'),'r', encoding='utf-8').readlines()]
     classes_dict = {} # 字典{'class1':0, 'class2':1, ...}
     classes_idx = {} # 字典：{0:'class0', 1:'class1', ...}
