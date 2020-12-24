@@ -45,6 +45,35 @@ def rename_files(img_root, ann_root, img_ext='.png', ann_ext='.txt'):
         dst_xml_path = os.path.join(renamed_anno, str(new_num)+ann_ext) # coco格式下的图像存储路径
         shutil.copy(src_xml_path, dst_xml_path)
 
+def check_files(ann_root, img_root):
+    '''检测图像名称和xml标准文件名称是否一致，检查图像后缀'''
+    if os.path.exists(ann_root):
+        ann = Path(ann_root)
+    else:
+        raise Exception("标注文件路径错误")
+    if os.path.exists(img_root):
+        img = Path(img_root)
+    else:
+        raise Exception("图像文件路径错误")
+    ann_files = []
+    img_files = []
+    img_exts = []
+    for an, im in zip(ann.iterdir(),img.iterdir()):
+        ann_files.append(an.stem)
+        img_files.append(im.stem)
+        img_exts.append(im.suffix)
+
+    print('图像后缀列表：', np.unique(img_exts))
+    if len(np.unique(img_exts)) > 1:
+        # print('数据集包含多种格式图像，请检查！', np.unique(img_exts))
+        raise Exception('数据集包含多种格式图像，请检查！', np.unique(img_exts))
+    if set(ann_files)==set(img_files):
+        print('标注文件和图像文件匹配')
+    else:
+        print('标注文件和图像文件不匹配')
+    
+    return np.unique(img_exts)[0]
+    
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
@@ -57,5 +86,7 @@ if __name__ == '__main__':
 
     img_root = opt.img
     ann_root = opt.anno
-
-    rename_files(img_root, ann_root, img_ext='.png', ann_ext='.txt')
+    
+	img_ext = check_files(ann_root, img_root)
+	
+    rename_files(img_root, ann_root, img_ext=img_ext, ann_ext='.txt')
