@@ -1,6 +1,6 @@
 from pathlib import Path
 import os
-# from voc2coco import renamed_jpeg
+import numpy as np
 from tqdm import tqdm
 import shutil
 import argparse
@@ -16,9 +16,9 @@ def rename_files(img_root, ann_root, img_ext='.png', ann_ext='.txt'):
     '''对图片和对应的标签进行重命名，支持voc格式和yolo格式(注意ann_ext后缀)'''
     p1 = Path(img_root)
     p2 = Path(ann_root)
-    renamed_img = os.path.join(p1.parent, 'RenamedImg')
+    renamed_img = os.path.join(p1.parent, 'RenamedImgs')
     create_dir(renamed_img)
-    renamed_anno = os.path.join(p2.parent, 'RenamedAnno')
+    renamed_anno = os.path.join(p2.parent, 'RenamedAnnos')
     create_dir(renamed_anno)
 
     imgs, annos = [], []
@@ -58,12 +58,15 @@ def check_files(ann_root, img_root):
     ann_files = []
     img_files = []
     img_exts = []
+    anno_exts = []
     for an, im in zip(ann.iterdir(),img.iterdir()):
         ann_files.append(an.stem)
         img_files.append(im.stem)
         img_exts.append(im.suffix)
+        anno_exts.append(an.suffix)
 
     print('图像后缀列表：', np.unique(img_exts))
+    print('标注文件后缀列表：', np.unique(anno_exts))
     if len(np.unique(img_exts)) > 1:
         # print('数据集包含多种格式图像，请检查！', np.unique(img_exts))
         raise Exception('数据集包含多种格式图像，请检查！', np.unique(img_exts))
@@ -72,7 +75,7 @@ def check_files(ann_root, img_root):
     else:
         print('标注文件和图像文件不匹配')
     
-    return np.unique(img_exts)[0]
+    return np.unique(img_exts)[0], np.unique(anno_exts)[0]
     
 if __name__ == '__main__':
 
@@ -86,7 +89,5 @@ if __name__ == '__main__':
 
     img_root = opt.img
     ann_root = opt.anno
-    
-	img_ext = check_files(ann_root, img_root)
-	
-    rename_files(img_root, ann_root, img_ext=img_ext, ann_ext='.txt')
+    img_ext, anno_ext = check_files(ann_root, img_root)
+    rename_files(img_root, ann_root, img_ext=img_ext, ann_ext=anno_ext)
