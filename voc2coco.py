@@ -208,11 +208,16 @@ def check_files(ann_root, img_root):
     ann_files = []
     img_files = []
     img_exts = []
-    for an, im in zip(ann.iterdir(),img.iterdir()):
+    for an in ann.iterdir():
         ann_files.append(an.stem)
+
+    for im in img.iterdir():
         img_files.append(im.stem)
         img_exts.append(im.suffix)
 
+    if not len(ann_files)==len(img_files):
+        raise Exception("图像数据和标注数据数量不一致！")
+    
     print('图像后缀列表：', np.unique(img_exts))
     if len(np.unique(img_exts)) > 1:
         # print('数据集包含多种格式图像，请检查！', np.unique(img_exts))
