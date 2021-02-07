@@ -120,7 +120,7 @@ if __name__ == "__main__":
     IMG_DIR = os.path.join(opt.voc_root, "JPEGImages")
     XML_DIR = os.path.join(opt.voc_root, "Annotations")
 
-    AUGUMENT = os.path.join(opt.voc_root, opt.aug_dir)
+    AUGUMENT = os.path.join(os.path.dirname(opt.voc_root), opt.aug_dir)
     if not os.path.exists(AUGUMENT):
         os.mkdir(AUGUMENT)
 
