@@ -1,3 +1,6 @@
+'''
+检查voc数据集
+'''
 from pathlib import Path
 import os
 import argparse
