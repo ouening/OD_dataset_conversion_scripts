@@ -1,5 +1,5 @@
 '''
-Pascal VOC格式数据集生成ImageSets/Main/train.txt,val.txt,trainval.ttx和test.txt
+YOLO格式数据集生成train.txt,val.txt,trainval.ttx和test.txt
 '''
 from pathlib import Path
 import os
@@ -50,7 +50,7 @@ if __name__ == '__main__':
     parser.add_argument('--voc-root',type=str,
         help='VOC数据集路径，需要包含ImageSets/Main文件夹')  
     parser.add_argument('--test-ratio',type=float, default=0.2,
-        help='验证集比例，默认为0.2')  
+        help='测试集比例，默认为0.2')  
     parser.add_argument('--ext', type=str, default='.png', 
         help='YOLO图像数据后缀，注意带"." ' ) 
     opt = parser.parse_args()
@@ -89,7 +89,7 @@ if __name__ == '__main__':
         files = shuffle(files)
         ratio = opt.test_ratio
         trainval, test = train_test_split(files, test_size=ratio)
-        train, val = train_test_split(trainval,test_size=0.2)
+        train, val = train_test_split(trainval, test_size=0.2)
         print('训练集数量: ',len(train))
         print('验证集数量: ',len(val))
         print('测试集数量: ',len(test))

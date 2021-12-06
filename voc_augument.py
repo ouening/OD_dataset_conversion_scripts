@@ -19,7 +19,6 @@ import argparse
 sometimes = lambda aug: iaa.Sometimes(0.5, aug) #建立lambda表达式，
 ia.seed(1)
 
-
 def read_xml_annotation(root, image_id):
     '''从xml标注文件所在路径读取标注框
     root: xml文件路径
