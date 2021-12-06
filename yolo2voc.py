@@ -115,7 +115,7 @@ def write_xml(img_root, bndbox, save_root, name):
     tree.write(filepath, encoding='utf-8')
 
 
-def mkdir(path):
+def mkdir(path:str):
     # 去除首位空格
     path = path.strip()
     # 去除尾部 \ 符号
@@ -159,17 +159,18 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--yolo-root', type=str, required=True, 
         help='VOC格式数据集根目录，该目录下必须包含images和labels这两个文件夹，以及classes.txt标签名文件')
-    parser.add_argument('--voc-outdir',type=str, default='VOCDataset',
-        help='Pascal VOC格式数据集存储路径，默认为yolo数据集路径下新建文件夹VOCDataset')
+    parser.add_argument('--voc-outdir',type=str, default='VOCFormatData',
+        help='Pascal VOC格式数据集存储路径，默认为yolo数据集同级目录下新建文件夹VOCFormatData')
     parser.add_argument('--test_ratio', type=float, default=0.2, help='测试集比例，（0,1）之间的浮点数')
     
     opt = parser.parse_args()
+    assert os.path.exists(opt.yolo_root) # 确保数据集存在
 
     yolo_img = os.path.join(opt.yolo_root, "images")
     yolo_label = os.path.join(opt.yolo_root, "labels")
     ext = check_files(yolo_img) #检查文件后缀
 
-    voc_root = os.path.join(opt.yolo_root, opt.voc_outdir)
+    voc_root = os.path.join(str(Path(opt.yolo_root).parent), opt.voc_outdir)
     if not os.path.exists(voc_root):
         os.mkdir(voc_root)
     # 读取标签名
@@ -214,7 +215,8 @@ if __name__ == "__main__":
                         name=name
                         )       
     
-    p = Path(voc_jpeg)
+    # 所有图片名称
+    files = [x.stem for x in Path(voc_jpeg).iterdir() if not x.stem.startswith('.')]
 
     # 利用已有的yolo数据划分信息 ${YOLO-ROOT}/trainval.txt, train.txt, val.txt, test.txt
     if os.path.exists(os.path.join(opt.yolo_root, 'trainval.txt')) and \
@@ -227,12 +229,7 @@ if __name__ == "__main__":
         val = [Path(x).stem for x in open(os.path.join(opt.yolo_root, 'val.txt')).readlines()]
         test = [Path(x).stem for x in open(os.path.join(opt.yolo_root, 'test.txt')).readlines()]
     else:
-        files = []
-        for file in p.iterdir():
-            if not file.stem.startswith('.'):  # 排除隐藏文件
-                name,sufix = file.stem, file.suffix
-                files.append(name) # VOC ImageSets/Main下的文件只存储文件名称
-            # print(name, sufix)
+        
         print('>>>随即划分train,val和test')
         files = shuffle(files)
         ratio = opt.test_ratio

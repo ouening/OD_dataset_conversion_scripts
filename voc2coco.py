@@ -190,10 +190,7 @@ def convert_xmls_to_cocojson(annotation_paths: List[str],
 
 def create_dir(ROOT:str):
     if not os.path.exists(ROOT):
-        os.mkdir(ROOT)
-    else:
-        shutil.rmtree(ROOT,ignore_errors=True) # 先删除，再创建
-        os.mkdir(ROOT)
+        os.makedirs(ROOT)
 
 def check_files(ann_root, img_root):
     '''检测图像名称和xml标准文件名称是否一致，检查图像后缀'''
@@ -239,7 +236,7 @@ if __name__ == '__main__':
         help='VOC格式数据集图像存储路径，如果不指定，默认为JPEGImages')
     parser.add_argument('--anno_dir', type=str, required=False, 
         help='VOC格式数据集标注文件存储路径，如果不指定，默认为Annotations')
-    parser.add_argument('--coco-dir', type=str, default='CocoDataset', 
+    parser.add_argument('--coco-dir', type=str, default='CocoFormatData', 
         help='COCO数据集存储路径，默认为VOC数据集相同路径下新建文件夹CocoDataset')
     parser.add_argument('--test-ratio',type=float, default=0.2,
         help='验证集比例，默认为0.3')   
@@ -247,8 +244,6 @@ if __name__ == '__main__':
         help='是否对VOC数据集进行数字化重命名')  
     parser.add_argument('--label-file', type=str, required=False,
                         help='path to label list.')
-    parser.add_argument('--output', type=str, default='output.json', help='path to output .json file')
-    # parser.add_argument('--ext', type=str, default='.png', help='VOC图像数据后缀，注意带"." ' )
 
     opt = parser.parse_args()
 
@@ -278,7 +273,7 @@ if __name__ == '__main__':
     assert ext is not None, "请检查图像后缀是否正确！"
     print()
     ##============================##
-    ##   对文件进行数字化重命名    ##
+    ##   对文件进行数字化重命名，需要对ImageSets/Main下的分割数据做相应修改
     ##============================##
     if opt.rename==True:
         renamed_jpeg = os.path.join(voc_root,'RenamedJPEGImages')
@@ -293,10 +288,10 @@ if __name__ == '__main__':
 
         assert imgs==annos
 
+        # 非规则名称与数字id的映射字典{'a'：0, 'b':1, ...}
         names_to_id_dict = {k:v for (v,k) in enumerate(imgs)}
-        
-        LENGTH = len(imgs)
-        print('图像数量：', LENGTH)
+         
+        print('图像数量：', len(imgs))
         for name, id in tqdm(names_to_id_dict.items()):
             src_img_path = os.path.join(voc_jpeg, name+ext) # 原始Pascal格式数据集的图像全路径
             # print(src_img_path)
@@ -320,7 +315,9 @@ if __name__ == '__main__':
 
     #== COCO 数据集路径
     coco_root = os.path.join(str(Path(voc_root).parent), opt.coco_dir) # pascal voc转coco格式的存储路径
-    create_dir(coco_root)
+    if os.path.exists(coco_root):
+        shutil.rmtree(coco_root)
+        create_dir(coco_root)
 
     txt_files = ['trainvaltest','train','val','trainval','test']
 
@@ -333,41 +330,50 @@ if __name__ == '__main__':
     coco_anno = os.path.join(coco_root, 'annotations') # coco标注文件存放路径
     create_dir(coco_anno)
 
-    # 利用VOC ImageSets数据划分信息
+    # 利用VOC ImageSets数据划分信息，注意ImageSets/main/train.txt文件只记录图片名称，没有后缀
+    # 所有图片名称
+    files = [x.stem for x in Path(voc_jpeg).iterdir() if not x.stem.startswith('.')]
+    
+    print('数据集长度:',len(files))
+    assert os.path.exists(os.path.join(voc_root, 'ImageSets/Main/trainval.txt'))
     if os.path.exists(os.path.join(voc_root, 'ImageSets/Main/trainval.txt')):
+        
         print('>>>使用ImageSet信息分割数据集')
         trainval_file = os.path.join(voc_root, 'ImageSets/Main/trainval.txt')
-        trainval_name = [i.strip() for i in open(trainval_file,'r').readlines()]
-        trainval = [os.path.join(os.path.join(coco_root,'trainval'),name+ext) for name in trainval_name]
+        if opt.rename:
+            trainval = [names_to_id_dict[i.strip()] for i in open(trainval_file,'r').readlines()]
+        else:
+            trainval = [i.strip() for i in open(trainval_file,'r').readlines()]
+        # trainval = [os.path.join(os.path.join(coco_root,'trainval'),name) for name in trainval_name]
 
         train_file = os.path.join(voc_root, 'ImageSets/Main/train.txt')
-        train_name = [i.strip() for i in open(train_file,'r').readlines()]
-        train = [os.path.join(os.path.join(coco_root,'train'),name+ext) for name in train_name]
+        if opt.rename:
+            train = [names_to_id_dict[i.strip()] for i in open(train_file,'r').readlines()]
+        else:
+            train = [i.strip() for i in open(train_file,'r').readlines()]
+        # train = [os.path.join(os.path.join(coco_root,'train'),name) for name in train_name]
 
         val_file = os.path.join(voc_root, 'ImageSets/Main/val.txt')
-        val_name = [i.strip() for i in open(val_file,'r').readlines()]
-        val = [os.path.join(os.path.join(coco_root,'val'),name+ext) for name in val_name]
+        if opt.rename:
+            val = [names_to_id_dict[i.strip()] for i in open(val_file,'r').readlines()]
+        else:
+            val = [i.strip() for i in open(val_file,'r').readlines()]
+        # val = [os.path.join(os.path.join(coco_root,'val'),name) for name in val_name]
 
         test_file = os.path.join(voc_root, 'ImageSets/Main/test.txt')
-        test_name = [i.strip() for i in open(test_file,'r').readlines()]
-        test = [os.path.join(os.path.join(coco_root,'test'),name+ext) for name in test_name]
+        if opt.rename:
+            test = [names_to_id_dict[i.strip()] for i in open(test_file,'r').readlines()]
+        else:
+            test = [i.strip() for i in open(test_file,'r').readlines()]
+        # test = [os.path.join(os.path.join(coco_root,'test'),name) for name in test_name]
         
-        print('>>>训练集数量: ',len(train_name))
-        print('>>>训练集验证集数量: ',len(trainval_name))
-        print('>>>验证集数量: ',len(val_name))
-        print('>>>测试集数量: ',len(test_name))
+        print('>>>训练集数量: ',len(train))
+        print('>>>训练集验证集数量: ',len(trainval))
+        print('>>>验证集数量: ',len(val))
+        print('>>>测试集数量: ',len(test))
 
     else:
-
         print('>>>随机划分COCO数据集')
-        p = Path(voc_jpeg)
-        files = []
-        for file in p.iterdir():
-            # name,sufix = file.name.split('.')
-            name, sufix = file.stem, file.suffix
-            files.append(name) # Pascal voc格式下，ImageSets/Main里的train.txt,trainval.txt,val.txt和test.txt等文件只存储图像id，不包括后缀
-            
-        print('数据集长度:',len(files))
         files = shuffle(files)
         ratio = opt.test_ratio
         trainval, test = train_test_split(files, test_size=ratio)
@@ -407,12 +413,15 @@ if __name__ == '__main__':
     for name,imgs,coco_dir in tqdm(zip(txt_files,datas,coco_dirs)):
         
         annotation_paths = []
-
         # [1] copy image files
         for img in imgs:
-            annotation_paths.append(os.path.join(voc_anno, img+'.xml'))
-            src_img_path = os.path.join(voc_jpeg, img+ext) # 原始Pascal格式数据集的图像全路径
-            dst_img_path = os.path.join(coco_dir, img+ext) # coco格式下的图像存储路径
+            # print(img)
+            annotation_paths.append(os.path.join(voc_anno, str(img)+'.xml'))
+            src_img_path = os.path.join(voc_jpeg, str(img)+ext) # 原始Pascal格式数据集的图像全路径
+            # print(src_img_path)
+            dst_img_path = os.path.join(coco_dir, str(img)+ext) # coco格式下的图像存储路径
+            # print(dst_img_path)
+            
             shutil.copy2(src_img_path, dst_img_path) 
 
         # [2] convert xml to coco json format files

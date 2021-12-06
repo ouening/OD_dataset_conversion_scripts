@@ -46,30 +46,27 @@ if __name__ == '__main__':
 
     xml_file = []
     img_files = []
-    ANNO = os.path.join(voc_root, 'Annotations')
+    voc_anno = os.path.join(voc_root, 'Annotations')
     
-    JPEG = os.path.join(voc_root, 'JPEGImages')
+    voc_jpeg = os.path.join(voc_root, 'JPEGImages')
     
-    ImgSets = os.path.join(voc_root, 'ImageSets')
+    voc_img_set = os.path.join(voc_root, 'ImageSets')
     try:
-        shutil.rmtree(ImgSets)
+        shutil.rmtree(voc_img_set)
     except FileNotFoundError as e:
         a = 1
-    mkdir(ImgSets)
+    mkdir(voc_img_set)
 
-    ImgSetsMain = os.path.join(ImgSets, 'Main')
+    ImgSetsMain = os.path.join(voc_img_set, 'Main')
     try:
         shutil.rmtree(ImgSetsMain)
     except FileNotFoundError as e:
         a = 1
     mkdir(ImgSetsMain)
 
-    p = Path(JPEG)
-    files = []
-    for file in p.iterdir():
-        name,sufix = file.name.split('.')
-        files.append(name)
-        # print(name, sufix)
+    files = [x.stem for x in Path(voc_jpeg).iterdir() if not x.stem.startswith('.')]
+    
+    print('>>>随机划分VOC数据集')
     print('数据集长度:',len(files))
     files = shuffle(files)
     ratio = opt.test_ratio

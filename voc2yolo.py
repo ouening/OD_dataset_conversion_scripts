@@ -202,7 +202,7 @@ if __name__ == '__main__':
         help='VOC格式数据集图像存储路径，如果不指定，默认为JPEGImages')
     parser.add_argument('--anno_dir', type=str, required=False, 
         help='VOC格式数据集标注文件存储路径，如果不指定，默认为Annotations')
-    parser.add_argument('--yolo-dir',type=str, default='YOLODataset',
+    parser.add_argument('--yolo-dir',type=str, default='YOLOFormatData',
         help='yolo格式数据集保存路径，默认为VOC数据集相同路径下新建文件夹YOLODataset')
     parser.add_argument('--valid-ratio',type=float, default=0.3,
         help='验证集比例，默认为0.3')   
@@ -232,7 +232,7 @@ if __name__ == '__main__':
     ext = check_files(anno_root, jpeg_root)
     assert ext is not None, "请检查图像后缀是否正确！"
 
-    #  YOLO数据集存储路径
+    #  YOLO数据集存储路径，YOLOFormat
     dest_yolo_dir = os.path.join(str(Path(voc_root).parent), opt.yolo_dir)
     # 
     image_ids = gen_image_ids(jpeg_root)
@@ -273,9 +273,14 @@ if __name__ == '__main__':
                 for d in data:
                     f.write(str(d))
                     f.write('\n')
+    
+    # 所有yolo images名称
+    files = [x.stem for x in Path(yolo_images).iterdir() if not x.stem.startswith('.')]
 
+    print('数据集长度:',len(files))
+    assert os.path.exists(os.path.join(voc_root, 'ImageSets/Main/trainval.txt'))
     if os.path.exists(os.path.join(voc_root, 'ImageSets/Main/trainval.txt')):
-        print('\n使用ImageSet信息分割数据集')
+        print('\n使用Pascal VOC ImageSet信息分割数据集')
         trainval_file = os.path.join(voc_root, 'ImageSets/Main/trainval.txt')
         trainval_name = [i.strip() for i in open(trainval_file,'r').readlines()]
         trainval = [os.path.join(yolo_images,name+ext) for name in trainval_name]
@@ -299,11 +304,6 @@ if __name__ == '__main__':
 
     else:
         print('\n随即划分YOLO数据集')
-        p = Path(yolo_images)
-        files = []
-        for file in p.iterdir():
-            name,sufix = file.stem, file.suffix
-            files.append(str(file))
 
         trainval, test = train_test_split(files, test_size=ratio)
         train, val = train_test_split(trainval,test_size=0.2)
