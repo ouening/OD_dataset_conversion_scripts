@@ -160,7 +160,7 @@ if __name__ == "__main__":
     parser.add_argument('--yolo-root', type=str, required=True, 
         help='VOC格式数据集根目录，该目录下必须包含images和labels这两个文件夹，以及classes.txt标签名文件')
     parser.add_argument('--voc-dir',type=str, default='VOCDataset',
-        help='aPascal VOC格式数据集存储路径，默认为yolo数据集路径下新建文件夹VOCDataset')
+        help='Pascal VOC格式数据集存储路径，默认为yolo数据集路径下新建文件夹VOCDataset')
     parser.add_argument('--test_ratio', type=float, default=0.2, help='测试集比例，（0,1）之间的浮点数')
     
     opt = parser.parse_args()

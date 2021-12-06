@@ -81,7 +81,6 @@ def ToPascalFormat(roboflow_voc_root):
     # roboflow_voc_root = r"D:\Datasets\cotterpins\cotterpin.v1-640_mosaic_3x.voc"
     root = Path(roboflow_voc_root)
 
-    
     create_dir(os.path.join(roboflow_voc_root, ''))
     imgs_dict = {'train':[], 'test':[], 'valid':[]}
     xmls_dict = {'train':[], 'test':[], 'valid':[]}
@@ -96,7 +95,6 @@ def ToPascalFormat(roboflow_voc_root):
                 if file.suffix == '.jpg':
                     print(file)
                     imgs_dict[subdir.stem].append(str(file))
-            
     #%%
     imgs = imgs_dict['train'] + imgs_dict['test'] + imgs_dict['valid']
     xmls = xmls_dict['train'] + xmls_dict['test'] + xmls_dict['valid']

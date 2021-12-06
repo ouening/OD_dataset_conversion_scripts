@@ -298,11 +298,11 @@ if __name__ == '__main__':
         print('测试集数量: ',len(test_name))
 
     else:
-        print('\n使用YOLO格式图像信息分割数据集')
+        print('\n随即划分YOLO数据集')
         p = Path(yolo_images)
         files = []
         for file in p.iterdir():
-            name,sufix = file.name.split('.')
+            name,sufix = file.stem, file.suffix
             files.append(str(file))
 
         trainval, test = train_test_split(files, test_size=ratio)

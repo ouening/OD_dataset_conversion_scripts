@@ -181,7 +181,7 @@ def convert_xmls_to_cocojson(annotation_paths: List[str],
             bnd_id = bnd_id + 1
 
     for label, label_id in label2id.items():
-        category_info = {'supercategory': 'none', 'id': label_id, 'name': label}
+        category_info = {'supercategory': 'electrical_fittings', 'id': label_id, 'name': label}
         output_json_dict['categories'].append(category_info)
 
     with open(output_jsonpath, 'w') as f:
@@ -262,19 +262,19 @@ if __name__ == '__main__':
         img_dir = 'JPEGImages'
     else:
         img_dir = opt.img_dir
-    JPEG = os.path.join(voc_root, img_dir)
-    if not os.path.exists(JPEG):
-        raise Exception(f'数据集图像路径{JPEG}不存在！')
+    voc_jpeg = os.path.join(voc_root, img_dir)
+    if not os.path.exists(voc_jpeg):
+        raise Exception(f'数据集图像路径{voc_jpeg}不存在！')
 
     if opt.anno_dir is None:
         anno_dir = 'Annotations'
     else:
         anno_dir = opt.anno_dir
-    ANNO = os.path.join(voc_root, anno_dir)  # 
-    if not os.path.exists(ANNO):
-        raise Exception(f'数据集图像路径{ANNO}不存在！')
+    voc_anno = os.path.join(voc_root, anno_dir)  # 
+    if not os.path.exists(voc_anno):
+        raise Exception(f'数据集图像路径{voc_anno}不存在！')
 
-    ext = check_files(ANNO, JPEG) # 检查图像后缀
+    ext = check_files(voc_anno, voc_jpeg) # 检查图像后缀
     assert ext is not None, "请检查图像后缀是否正确！"
     print()
     ##============================##
@@ -286,20 +286,11 @@ if __name__ == '__main__':
         renamed_xml = os.path.join(voc_root,'RenamedAnnotations')
         create_dir(renamed_xml)
 
-        p1 = Path(JPEG)
-        p2 = Path(ANNO)
-        imgs = [x for x in p1.iterdir() if not x.startswith('.')]
-        
-        annos = [], []
-        # for img, anno in zip(p1.iterdir(),p2.iterdir()):
-        #     # imgs.append(img.name.split('.')[0]) # 这里用'.'进行分割，因此要保证文件名中只有区分后缀的一个小数点
-        #     # annos.append(anno.name.split('.')[0])
-        #     if 
-        #     imgs.append(img.stem) # 这里用'.'进行分割，因此要保证文件名中只有区分后缀的一个小数点
-        #     annos.append(anno.stem)
-        imgs= sorted(imgs)
-        annos = sorted(annos)
-        # print(imgs[:10], annos[:10])
+        p1 = Path(voc_jpeg)
+        p2 = Path(voc_anno)
+        imgs = sorted([x.stem for x in p1.iterdir() if not x.stem.startswith('.')])
+        annos = sorted([x.stem for x in p2.iterdir() if not x.stem.startswith('.')])
+
         assert imgs==annos
 
         names_to_id_dict = {k:v for (v,k) in enumerate(imgs)}
@@ -307,18 +298,18 @@ if __name__ == '__main__':
         LENGTH = len(imgs)
         print('图像数量：', LENGTH)
         for name, id in tqdm(names_to_id_dict.items()):
-            src_img_path = os.path.join(JPEG, name+ext) # 原始Pascal格式数据集的图像全路径
+            src_img_path = os.path.join(voc_jpeg, name+ext) # 原始Pascal格式数据集的图像全路径
             # print(src_img_path)
             dst_img_path = os.path.join(renamed_jpeg, str(id)+ext) # coco格式下的图像存储路径
             # print(dst_img_path)
             shutil.copy2(src_img_path, dst_img_path) 
 
-            src_xml_path = os.path.join(ANNO, name+'.xml') # 原始Pascal格式数据集的图像全路径
+            src_xml_path = os.path.join(voc_anno, name+'.xml') # 原始Pascal格式数据集的图像全路径
             dst_xml_path = os.path.join(renamed_xml, str(id)+'.xml') # coco格式下的图像存储路径
             shutil.copy2(src_xml_path, dst_xml_path)
         
-        JPEG = renamed_jpeg     # 将重命名后的图像路径赋值给JPEG
-        ANNO = renamed_xml      # 将重命名后的标注路径赋值给ANNO
+        voc_jpeg = renamed_jpeg     # 将重命名后的图像路径赋值给JPEG
+        voc_anno = renamed_xml      # 将重命名后的标注路径赋值给ANNO
 
     ImgSets = os.path.join(voc_root, 'ImageSets')
     if not os.path.exists(ImgSets):
@@ -328,35 +319,62 @@ if __name__ == '__main__':
     create_dir(ImgSetsMain)
 
     #== COCO 数据集路径
-    COCOPROJ = os.path.join(str(Path(voc_root).parent), opt.coco_dir) # pascal voc转coco格式的存储路径
-    create_dir(COCOPROJ)
+    coco_root = os.path.join(str(Path(voc_root).parent), opt.coco_dir) # pascal voc转coco格式的存储路径
+    create_dir(coco_root)
 
     txt_files = ['trainvaltest','train','val','trainval','test']
 
     coco_dirs = [] 
     for dir_ in txt_files:
-        DIR = os.path.join(COCOPROJ, dir_)
+        DIR = os.path.join(coco_root, dir_)
         coco_dirs.append(DIR)
         create_dir(DIR)
 
-    COCOANNO = os.path.join(COCOPROJ, 'annotations') # coco标注文件存放路径
-    create_dir(COCOANNO)
+    coco_anno = os.path.join(coco_root, 'annotations') # coco标注文件存放路径
+    create_dir(coco_anno)
 
-    p = Path(JPEG)
-    files = []
-    for file in p.iterdir():
-        # name,sufix = file.name.split('.')
-        name, sufix = file.stem, file.suffix
-        files.append(name) # Pascal voc格式下，ImageSets/Main里的train.txt,trainval.txt,val.txt和test.txt等文件只存储图像id，不包括后缀
+    # 利用VOC ImageSets数据划分信息
+    if os.path.exists(os.path.join(voc_root, 'ImageSets/Main/trainval.txt')):
+        print('>>>使用ImageSet信息分割数据集')
+        trainval_file = os.path.join(voc_root, 'ImageSets/Main/trainval.txt')
+        trainval_name = [i.strip() for i in open(trainval_file,'r').readlines()]
+        trainval = [os.path.join(os.path.join(coco_root,'trainval'),name+ext) for name in trainval_name]
+
+        train_file = os.path.join(voc_root, 'ImageSets/Main/train.txt')
+        train_name = [i.strip() for i in open(train_file,'r').readlines()]
+        train = [os.path.join(os.path.join(coco_root,'train'),name+ext) for name in train_name]
+
+        val_file = os.path.join(voc_root, 'ImageSets/Main/val.txt')
+        val_name = [i.strip() for i in open(val_file,'r').readlines()]
+        val = [os.path.join(os.path.join(coco_root,'val'),name+ext) for name in val_name]
+
+        test_file = os.path.join(voc_root, 'ImageSets/Main/test.txt')
+        test_name = [i.strip() for i in open(test_file,'r').readlines()]
+        test = [os.path.join(os.path.join(coco_root,'test'),name+ext) for name in test_name]
         
-    print('数据集长度:',len(files))
-    files = shuffle(files)
-    ratio = opt.test_ratio
-    trainval, test = train_test_split(files, test_size=ratio)
-    train, val = train_test_split(trainval,test_size=0.2)
-    print('训练集数量: ',len(train))
-    print('验证集数量: ',len(val))
-    print('测试集数量: ',len(test))
+        print('>>>训练集数量: ',len(train_name))
+        print('>>>训练集验证集数量: ',len(trainval_name))
+        print('>>>验证集数量: ',len(val_name))
+        print('>>>测试集数量: ',len(test_name))
+
+    else:
+
+        print('>>>随机划分COCO数据集')
+        p = Path(voc_jpeg)
+        files = []
+        for file in p.iterdir():
+            # name,sufix = file.name.split('.')
+            name, sufix = file.stem, file.suffix
+            files.append(name) # Pascal voc格式下，ImageSets/Main里的train.txt,trainval.txt,val.txt和test.txt等文件只存储图像id，不包括后缀
+            
+        print('数据集长度:',len(files))
+        files = shuffle(files)
+        ratio = opt.test_ratio
+        trainval, test = train_test_split(files, test_size=ratio)
+        train, val = train_test_split(trainval,test_size=0.2)
+        print('训练集数量: ',len(train))
+        print('验证集数量: ',len(val))
+        print('测试集数量: ',len(test))
 
     def write_txt(txt_path, data):
         with open(txt_path,'w') as f:
@@ -377,7 +395,7 @@ if __name__ == '__main__':
         labels = opt.label_file
     else:
         print('从xml文件自动处理标签！')
-        counting_labels(ANNO)
+        counting_labels(voc_anno)
         labels = os.path.join(voc_root, 'labels.txt')
 
     if not os.path.isfile(labels):
@@ -386,20 +404,22 @@ if __name__ == '__main__':
     label2id = get_label2id(labels_path=labels)
     print('标签值及其对应的编码值：',label2id)
 
-    for name,imgs,PATH in tqdm(zip(txt_files,
-                                    datas,
-                                    coco_dirs)):
+    for name,imgs,coco_dir in tqdm(zip(txt_files,datas,coco_dirs)):
         
         annotation_paths = []
+
+        # [1] copy image files
         for img in imgs:
-            annotation_paths.append(os.path.join(ANNO, img+'.xml'))
-            src_img_path = os.path.join(JPEG, img+ext) # 原始Pascal格式数据集的图像全路径
-            dst_img_path = os.path.join(PATH, img+ext) # coco格式下的图像存储路径
-            shutil.copy(src_img_path, dst_img_path) 
+            annotation_paths.append(os.path.join(voc_anno, img+'.xml'))
+            src_img_path = os.path.join(voc_jpeg, img+ext) # 原始Pascal格式数据集的图像全路径
+            dst_img_path = os.path.join(coco_dir, img+ext) # coco格式下的图像存储路径
+            shutil.copy2(src_img_path, dst_img_path) 
+
+        # [2] convert xml to coco json format files
         convert_xmls_to_cocojson(
                     annotation_paths=annotation_paths,
                     label2id=label2id,
-                    output_jsonpath=os.path.join(COCOANNO, f'instances_{name}.json'),
+                    output_jsonpath=os.path.join(coco_anno, f'instances_{name}.json'),
                     # img_ids = imgs
                     extract_num_from_imgid=True      # 一定注意这里，COCO格式数据集image_id需要整型，可以从图片名称中抽取id号
                     )
