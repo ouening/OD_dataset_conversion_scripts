@@ -1,6 +1,5 @@
 '''
-Pascal VOC格式数据集生成ImageSets/Main/train.txt,val.txt,trainval.txt和test.txt
-
+Pascal VOC格式数据集转COCO格式数据集
 适用项目：
 1. https://github.com/zylo117/Yet-Another-EfficientDet-Pytorch
 2. mmdetection2
@@ -37,10 +36,10 @@ COCODetection时会遇到错误：
 
 path = coco.loadImgs(img_id)[0]['file_name']
 
-File "E:\Applications\WPy64-3741\python-3.7.4.amd64\lib\site-packages\pycocotools\coco.py", line 230, in loadImgs
+File "python\lib\site-packages\pycocotools\coco.py", line 230, in loadImgs
 return [self.imgs[id] for id in ids]
 
-File "E:\Applications\WPy64-3741\python-3.7.4.amd64\lib\site-packages\pycocotools\coco.py", line 230, in <listcomp>
+File "python\lib\site-packages\pycocotools\coco.py", line 230, in <listcomp>
 return [self.imgs[id] for id in ids]
 
 KeyError: '0'
@@ -65,7 +64,8 @@ from collections import Counter
 
 def get_label2id(labels_path: str) -> Dict[str, int]:
     '''
-    id is 1 start'''
+    id is 1 start
+    '''
     with open(labels_path, 'r') as f:
         labels_str = f.read().strip().split('\n')
     labels_ids = list(range(1, len(labels_str)+1))
@@ -99,7 +99,7 @@ def get_image_info(ann_path, annotation_root, extract_num_from_imgid=True):
     return image_info
 
 
-def counting_labels(anno_root):
+def counting_labels(anno_root: str):
     '''
     获取pascal voc格式数据集中的所有标签名
     anno_root: pascal标注文件路径，一般为Annotations
@@ -205,6 +205,7 @@ def check_files(ann_root, img_root):
         img = Path(img_root)
     else:
         raise Exception("图像文件路径错误")
+
     ann_files = []
     img_files = []
     img_exts = []
@@ -233,7 +234,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--voc-root', type=str, required=True, 
-        help='VOC格式数据集根目录，该目录下必须包含存储图像和标注文件的两个文件夹')
+        help='VOC格式数据集根目录，该目录下必须包含存储图像和标注文件的两个文件夹，例如官方格式下有JPEGImages和Annotations两个文件夹')
     parser.add_argument('--img_dir', type=str, required=False, 
         help='VOC格式数据集图像存储路径，如果不指定，默认为JPEGImages')
     parser.add_argument('--anno_dir', type=str, required=False, 

@@ -1,6 +1,8 @@
 '''
 COCO数据集转VOC
-`pip install git+https://github.com/microsoft/ComputerVision.git@master#egg=utils_cv`
+`pip install git+https://github.com/microsoft/computervision-recipes.git@master#egg=utils_cv`
+
+参考：https://github.com/microsoft/computervision-recipes/blob/master/utils_cv/detection/data.py
 '''
 
 from utils_cv.detection.data import coco2voc

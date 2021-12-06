@@ -1,3 +1,6 @@
+'''
+YOLO数据集扩增
+'''
 import xml.etree.ElementTree as ET
 import pickle
 import os
@@ -46,7 +49,8 @@ def voc_to_yolo_format(xmin, ymin, xmax, ymax, img_width, img_height):
     return x_center, y_center, width, height
 
 def read_yolo_annotation(img_root, label_root, image_id):
-    '''root：一般是labels, txt文件, <object-class> <x_center> <y_center> <width> <height>
+    '''
+    root：一般是labels, txt文件, <object-class> <x_center> <y_center> <width> <height>
     image_id是包含.txt后缀的文件名
 
     return:
@@ -55,10 +59,10 @@ def read_yolo_annotation(img_root, label_root, image_id):
     img_width, img_height = Image.open(os.path.join(img_root, image_id[:-4] + ext)).size
 
     annos = [x for x in open(os.path.join(label_root, image_id)).readlines()]
-    bndboxlist = []
+    bndboxlist = []   # 存储标注框信息
 
     for anno in annos:  # 找到root节点下的所有country节点
-        lb, x_center, y_center, width, height = anno.split(' ') # 注意得到的str类型
+        lb, x_center, y_center, width, height = anno.split(' ') # 注意得到的是str类型
 
         xmin,ymin,xmax,ymax = yolo_to_voc_format(x_center, y_center, width, height, img_width, img_height)
         # print(xmin,ymin,xmax,ymax)
@@ -66,7 +70,6 @@ def read_yolo_annotation(img_root, label_root, image_id):
         # print(bndboxlist)
 
     return bndboxlist
-
 
 def change_yolo_annotation(img_root, label_root, image_id, new_target, saveroot, id):
     '''保存新的yolo标注
