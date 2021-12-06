@@ -109,7 +109,7 @@ def counting_labels(anno_root):
     for xml_file in os.listdir(anno_root):
         xml_file = os.path.join(anno_root, xml_file)
         # print(xml_file)
-        xml = open(xml_file,encoding='utf-8')
+        xml = open(xml_file,) # encoding='utf-8'
         tree=ET.parse(xml)
         root = tree.getroot()
         for obj in root.iter('object'):
@@ -192,7 +192,7 @@ def create_dir(ROOT:str):
     if not os.path.exists(ROOT):
         os.mkdir(ROOT)
     else:
-        shutil.rmtree(ROOT) # 先删除，再创建
+        shutil.rmtree(ROOT,ignore_errors=True) # 先删除，再创建
         os.mkdir(ROOT)
 
 def check_files(ann_root, img_root):
@@ -275,6 +275,7 @@ if __name__ == '__main__':
 
     ext = check_files(ANNO, JPEG) # 检查图像后缀
     assert ext is not None, "请检查图像后缀是否正确！"
+    print()
     ##============================##
     ##   对文件进行数字化重命名    ##
     ##============================##
@@ -286,25 +287,34 @@ if __name__ == '__main__':
 
         p1 = Path(JPEG)
         p2 = Path(ANNO)
-        imgs, annos = [], []
-        for img, anno in zip(p1.iterdir(),p2.iterdir()):
-            imgs.append(img.name.split('.')[0]) # 这里用'.'进行分割，因此要保证文件名中只有区分后缀的一个小数点
-            annos.append(anno.name.split('.')[0])
+        imgs = [x for x in p1.iterdir() if not x.startswith('.')]
+        
+        annos = [], []
+        # for img, anno in zip(p1.iterdir(),p2.iterdir()):
+        #     # imgs.append(img.name.split('.')[0]) # 这里用'.'进行分割，因此要保证文件名中只有区分后缀的一个小数点
+        #     # annos.append(anno.name.split('.')[0])
+        #     if 
+        #     imgs.append(img.stem) # 这里用'.'进行分割，因此要保证文件名中只有区分后缀的一个小数点
+        #     annos.append(anno.stem)
         imgs= sorted(imgs)
         annos = sorted(annos)
         # print(imgs[:10], annos[:10])
         assert imgs==annos
 
+        names_to_id_dict = {k:v for (v,k) in enumerate(imgs)}
+        
         LENGTH = len(imgs)
         print('图像数量：', LENGTH)
-        for new_num, id in tqdm(zip(range(1,LENGTH+1), imgs), total=LENGTH):
-            src_img_path = os.path.join(JPEG, id+ext) # 原始Pascal格式数据集的图像全路径
-            dst_img_path = os.path.join(renamed_jpeg, str(new_num)+ext) # coco格式下的图像存储路径
-            shutil.copy(src_img_path, dst_img_path) 
+        for name, id in tqdm(names_to_id_dict.items()):
+            src_img_path = os.path.join(JPEG, name+ext) # 原始Pascal格式数据集的图像全路径
+            # print(src_img_path)
+            dst_img_path = os.path.join(renamed_jpeg, str(id)+ext) # coco格式下的图像存储路径
+            # print(dst_img_path)
+            shutil.copy2(src_img_path, dst_img_path) 
 
-            src_xml_path = os.path.join(ANNO, id+'.xml') # 原始Pascal格式数据集的图像全路径
-            dst_xml_path = os.path.join(renamed_xml, str(new_num)+'.xml') # coco格式下的图像存储路径
-            shutil.copy(src_xml_path, dst_xml_path)
+            src_xml_path = os.path.join(ANNO, name+'.xml') # 原始Pascal格式数据集的图像全路径
+            dst_xml_path = os.path.join(renamed_xml, str(id)+'.xml') # coco格式下的图像存储路径
+            shutil.copy2(src_xml_path, dst_xml_path)
         
         JPEG = renamed_jpeg     # 将重命名后的图像路径赋值给JPEG
         ANNO = renamed_xml      # 将重命名后的标注路径赋值给ANNO
@@ -334,7 +344,8 @@ if __name__ == '__main__':
     p = Path(JPEG)
     files = []
     for file in p.iterdir():
-        name,sufix = file.name.split('.')
+        # name,sufix = file.name.split('.')
+        name, sufix = file.stem, file.suffix
         files.append(name) # Pascal voc格式下，ImageSets/Main里的train.txt,trainval.txt,val.txt和test.txt等文件只存储图像id，不包括后缀
         
     print('数据集长度:',len(files))
