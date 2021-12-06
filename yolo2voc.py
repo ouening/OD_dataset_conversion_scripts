@@ -159,22 +159,24 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--yolo-root', type=str, required=True, 
         help='VOC格式数据集根目录，该目录下必须包含images和labels这两个文件夹，以及classes.txt标签名文件')
-    parser.add_argument('--voc-dir',type=str, default='VOCDataset',
+    parser.add_argument('--voc-outdir',type=str, default='VOCDataset',
         help='Pascal VOC格式数据集存储路径，默认为yolo数据集路径下新建文件夹VOCDataset')
     parser.add_argument('--test_ratio', type=float, default=0.2, help='测试集比例，（0,1）之间的浮点数')
     
     opt = parser.parse_args()
 
-    IMG_DIR = os.path.join(opt.yolo_root, "images")
-    LABEL_DIR = os.path.join(opt.yolo_root, "labels")
-    ext = check_files(IMG_DIR) #检查文件后缀
+    yolo_img = os.path.join(opt.yolo_root, "images")
+    yolo_label = os.path.join(opt.yolo_root, "labels")
+    ext = check_files(yolo_img) #检查文件后缀
 
-    VOCROOT = os.path.join(opt.yolo_root, opt.voc_dir)
-    if not os.path.exists(VOCROOT):
-        os.mkdir(VOCROOT)
+    voc_root = os.path.join(opt.yolo_root, opt.voc_outdir)
+    if not os.path.exists(voc_root):
+        os.mkdir(voc_root)
     # 读取标签名
-    assert os.path.isfile(os.path.join(opt.yolo_root, 'classes.txt')), "请检查标签文件！"
+    assert os.path.isfile(os.path.join(opt.yolo_root, 'classes.txt')), "请检查YOLO数据集根目录下的标签文件classes.txt，\
+        若没有，需自行构建（每行一个类别，索引从0开始，和yolo的txt标注文件里的标签匹配！"
     classes = [x.strip() for x in open( os.path.join(opt.yolo_root, 'classes.txt'),'r', encoding='utf-8').readlines()]
+    print('>>>数据集标签：', classes)
     classes_dict = {} # 字典{'class1':0, 'class2':1, ...}
     classes_idx = {} # 字典：{0:'class0', 1:'class1', ...}
     for k, v in enumerate(classes):
@@ -182,61 +184,63 @@ if __name__ == "__main__":
         classes_idx[k] = v
         
     # 创建存储图像路径
-    VOC_IMG_DIR = os.path.join(VOCROOT, "JPEGImages")  # 存储
+    voc_jpeg = os.path.join(voc_root, "JPEGImages")  # 存储
     try:
-        shutil.rmtree(VOC_IMG_DIR)
+        shutil.rmtree(voc_jpeg)
     except FileNotFoundError as e:
         a = 1
-    mkdir(VOC_IMG_DIR)
+    mkdir(voc_jpeg)
     # 创建存储xml标签路径
-    VOC_XML_DIR = os.path.join(VOCROOT, "Annotations")  # 存储XML文件夹路径
+    voc_anno = os.path.join(voc_root, "Annotations")  # 存储XML文件夹路径
     try:
-        shutil.rmtree(VOC_XML_DIR)
+        shutil.rmtree(voc_anno)
     except FileNotFoundError as e:
         a = 1
-    mkdir(VOC_XML_DIR)
+    mkdir(voc_anno)
 
     # 创建存储train.txt, trainval.txt, test.txt标签路径
-    VOC_Sets_DIR = os.path.join(VOCROOT, "ImageSets")  # 
-    try:
-        shutil.rmtree(VOC_Sets_DIR)
-    except FileNotFoundError as e:
-        a = 1
-    mkdir(VOC_Sets_DIR)
-    # 创建存储train.txt, trainval.txt, test.txt标签路径
-    VOC_Main_DIR = os.path.join(VOC_Sets_DIR, "Main")  # 存储train.txt, trainval.txt, test.txt标签路径
-    try:
-        shutil.rmtree(VOC_Main_DIR)
-    except FileNotFoundError as e:
-        a = 1
-    mkdir(VOC_Main_DIR)
+    voc_set_dir = os.path.join(voc_root, "ImageSets/Main")  # 
+    if not os.path.exists(voc_set_dir):
+        os.makedirs(voc_set_dir)
 
-    for root, sub_folders, files in os.walk(LABEL_DIR):
+    for root, sub_folders, files in os.walk(yolo_label):
         for name in tqdm(files): # name是包含.txt后缀的文件名
             # [xmin, ymin, xmax, ymax, int(lb)]
-            bndbox = read_yolo_annotation(IMG_DIR, LABEL_DIR, name) # 读取yolo标注文，注意：## 返回voc格式标注框 ##
-            shutil.copy(os.path.join(IMG_DIR, name[:-4] + ext), VOC_IMG_DIR) # 复制图像至VOC图像存储路径
-            write_xml(img_root=IMG_DIR, 
+            bndbox = read_yolo_annotation(yolo_img, yolo_label, name) # 读取yolo标注文，注意：## 返回voc格式标注框 ##
+            shutil.copy(os.path.join(yolo_img, name[:-4] + ext), voc_jpeg) # 复制图像至VOC图像存储路径
+            write_xml(img_root=yolo_img, 
                         bndbox=bndbox,
-                        save_root=VOC_XML_DIR,
+                        save_root=voc_anno,
                         name=name
                         )       
     
-    p = Path(VOC_IMG_DIR)
+    p = Path(voc_jpeg)
 
-    files = []
-    for file in p.iterdir():
-        name,sufix = file.name.split('.')
-        files.append(name)
-        # print(name, sufix)
-    print('数据集长度:',len(files))
-    files = shuffle(files)
-    ratio = opt.test_ratio
-    trainval, test = train_test_split(files, test_size=ratio)
-    train, val = train_test_split(trainval,test_size=0.2)
-    print('训练集数量: ',len(train))
-    print('验证集数量: ',len(val))
-    print('测试集数量: ',len(test))
+    # 利用已有的yolo数据划分信息 ${YOLO-ROOT}/trainval.txt, train.txt, val.txt, test.txt
+    if os.path.exists(os.path.join(opt.yolo_root, 'trainval.txt')) and \
+        os.path.exists(os.path.join(opt.yolo_root, 'train.txt')) and \
+        os.path.exists(os.path.join(opt.yolo_root, 'val.txt')) and \
+            os.path.exists(os.path.join(opt.yolo_root, 'test.txt')):
+        print('>>> 使用YOLO已有划分数据分割train,val和test')
+        trainval = [Path(x).stem for x in open(os.path.join(opt.yolo_root, 'trainval.txt')).readlines()]
+        train = [Path(x).stem for x in open(os.path.join(opt.yolo_root, 'train.txt')).readlines()]
+        val = [Path(x).stem for x in open(os.path.join(opt.yolo_root, 'val.txt')).readlines()]
+        test = [Path(x).stem for x in open(os.path.join(opt.yolo_root, 'test.txt')).readlines()]
+    else:
+        files = []
+        for file in p.iterdir():
+            if not file.stem.startswith('.'):  # 排除隐藏文件
+                name,sufix = file.stem, file.suffix
+                files.append(name) # VOC ImageSets/Main下的文件只存储文件名称
+            # print(name, sufix)
+        print('>>>随即划分train,val和test')
+        files = shuffle(files)
+        ratio = opt.test_ratio
+        trainval, test = train_test_split(files, test_size=ratio)
+        train, val = train_test_split(trainval,test_size=0.2)
+        print('训练集数量: ',len(train))
+        print('验证集数量: ',len(val))
+        print('测试集数量: ',len(test))
 
     def write_txt(txt_path, data):
         '''写入txt文件'''
@@ -245,15 +249,14 @@ if __name__ == "__main__":
                 f.write(str(d))
                 f.write('\n')
     # 写入各个txt文件
-    trainval_txt = os.path.join(VOC_Main_DIR,'trainval.txt')
+    trainval_txt = os.path.join(voc_set_dir,'trainval.txt')
     write_txt(trainval_txt, trainval)
 
-    train_txt = os.path.join(VOC_Main_DIR,'train.txt')
+    train_txt = os.path.join(voc_set_dir,'train.txt')
     write_txt(train_txt, train)
 
-    val_txt = os.path.join(VOC_Main_DIR,'val.txt')
+    val_txt = os.path.join(voc_set_dir,'val.txt')
     write_txt(val_txt, val)
 
-    test_txt = os.path.join(VOC_Main_DIR,'test.txt')
+    test_txt = os.path.join(voc_set_dir,'test.txt')
     write_txt(test_txt, test)
-
