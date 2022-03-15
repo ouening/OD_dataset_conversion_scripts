@@ -24,7 +24,7 @@ plt.rcParams['font.sans-serif'] = ['Times New Roman']
 plt.rcParams['font.size'] = 13
 plt.rc('axes', unicode_minus=False)
 plt.rc('axes', unicode_minus=False)
-plt.style.use(['science','ieee'])
+# plt.style.use(['science','ieee'])
 from collections import Counter
 from pathlib import Path
 import argparse
@@ -114,11 +114,11 @@ def load_dataset(xml_list, anno_root, savefig=True,img_name=''):
         df = df.sort_values(ascending=True)
         df.plot(kind='bar',alpha=0.75, rot=0)
         # plt.xticks(rotation=90)
-        plt.xlabel('number of instances')
+        plt.ylabel('number of instances')
         plt.title('Distribution of different classes')
 
         plt.subplot(2,2,2)
-        plt.hist(xml_df['box_area'], bins=100,)
+        plt.hist(xml_df['box_area']*100, bins=100,)
         plt.title('Histogram Plot of Boxes')
 
         plt.subplot(2,2,3)
