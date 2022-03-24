@@ -115,23 +115,31 @@ def load_dataset(xml_list, anno_root, savefig=True,img_name=''):
         df.plot(kind='bar',alpha=0.75, rot=0)
         # plt.xticks(rotation=90)
         plt.ylabel('number of instances')
-        plt.title('Distribution of different classes')
+        # plt.title('Distribution of different classes')
 
         plt.subplot(2,2,2)
-        plt.hist(xml_df['box_area']*100, bins=100,)
-        plt.title('Histogram Plot of Boxes')
+        # plt.hist(xml_df['box_area']*100, bins=100,)
+        # x直方图
+        plt.hist((xml_df['xmax']+xml_df['xmin'])/2.0/xml_df['width'], bins=50,)
+        # plt.title('Histogram plot of x')
+        plt.xlabel('x')
+        plt.ylabel('frequency')
 
         plt.subplot(2,2,3)
-        for c in classes:
-            df_ = xml_df[xml_df['class']==c][['box_width','box_height']]
-            plt.scatter(df_['box_width'], df_['box_height'],label=c)
-
-        plt.title('Scatter Plot of Boxes')
-        plt.legend(loc='best')
+        plt.hist((xml_df['ymax']+xml_df['ymin'])/2.0/xml_df['height'], bins=50, )
+        # plt.title('Histogram Plot of Box Areas')
+        plt.xlabel('y')
+        plt.ylabel('frequency')
 
         plt.subplot(2,2,4)
-        plt.hist(xml_df['box_width']*xml_df['box_height'], bins=50)
-        plt.title('Histogram Plot of Box Areas')
+        for c in classes:
+            df_ = xml_df[xml_df['class']==c][['box_width','box_height']]
+            plt.scatter(df_['box_width']/xml_df['width'], df_['box_height']/xml_df['height'],label=c)
+
+        plt.xlabel('w')
+        plt.ylabel('h')
+        # plt.title('Scatter Plot of Boxes')
+        plt.legend(loc='best')
 
         plt.savefig(os.path.join(voc_stat,f'{img_name}_output.png'), dpi=800,bbox_inches='tight', pad_inches=0.0)
 
