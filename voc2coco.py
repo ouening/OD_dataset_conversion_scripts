@@ -314,7 +314,7 @@ if __name__ == '__main__':
     create_dir(ImgSetsMain)
 
     #== COCO 数据集路径
-    coco_root = os.path.join(str(Path(voc_root).parent), opt.coco_dir) # pascal voc转coco格式的存储路径
+    coco_root = os.path.join(str(Path(voc_root).parent), Path(voc_root).stem + opt.coco_dir) # pascal voc转coco格式的存储路径
     if os.path.exists(coco_root):
         shutil.rmtree(coco_root)
         create_dir(coco_root)

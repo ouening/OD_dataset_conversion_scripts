@@ -233,7 +233,7 @@ if __name__ == '__main__':
     assert ext is not None, "请检查图像后缀是否正确！"
 
     #  YOLO数据集存储路径，YOLOFormat
-    dest_yolo_dir = os.path.join(str(Path(voc_root).parent), opt.yolo_dir)
+    dest_yolo_dir = os.path.join(str(Path(voc_root).parent), Path(voc_root).stem+opt.yolo_dir)
     # 
     image_ids = gen_image_ids(jpeg_root)
     print('数据集长度：', len(image_ids))

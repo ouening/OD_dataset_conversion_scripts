@@ -170,7 +170,7 @@ if __name__ == "__main__":
     yolo_label = os.path.join(opt.yolo_root, "labels")
     ext = check_files(yolo_img) #检查文件后缀
 
-    voc_root = os.path.join(str(Path(opt.yolo_root).parent), opt.voc_outdir)
+    voc_root = os.path.join(str(Path(opt.yolo_root).parent), Path(opt.yolo_root).stem + opt.voc_outdir)
     if not os.path.exists(voc_root):
         os.mkdir(voc_root)
     # 读取标签名
