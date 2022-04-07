@@ -99,7 +99,6 @@ if __name__ == '__main__':
         print('训练集数量: ',len(train))
         print('验证集数量: ',len(val))
         print('测试集数量: ',len(test))
-
         
         # 写入各个txt文件
         trainval_txt = os.path.join(yolo_root,'trainval.txt')
