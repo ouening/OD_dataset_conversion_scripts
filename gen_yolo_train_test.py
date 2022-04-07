@@ -58,8 +58,10 @@ if __name__ == '__main__':
     yolo_root = opt.yolo_root
     print('YOLO格式数据集路径：', yolo_root)
 
-    ANNO = os.path.join(yolo_root, 'labels')
-    JPEG = os.path.join(yolo_root, 'images')
+    yolo_anno_root = os.path.join(yolo_root, 'labels')
+    assert Path(yolo_anno_root).exists(), '{}不存在'.format(yolo_anno_root)
+    yolo_img_root = os.path.join(yolo_root, 'images')
+    assert Path(yolo_img_root).exists(), '{}不存在'.format(yolo_img_root)
     
     if opt.from_voc:
         print('从VOC数据集中分割数据集')
@@ -67,24 +69,28 @@ if __name__ == '__main__':
             raise Exception('需要提供VOC格式路径')
         voc_root = opt.voc_root
         voc_sets = os.path.join(voc_root,'ImageSets/Main')
+        voc_img_root = os.path.join(voc_root,'JPEGImages')
+        if not os.path.exists(voc_img_root):
+            raise Exception('VOC数据集中没有JPEGImages文件夹')
+        
+        img_suffix = set([x.suffix for x in Path(voc_img_root).iterdir()])
+        if len(img_suffix) != 1:
+            raise Exception('VOC数据集中JPEGImages文件夹中的图片数量不均匀')
+        img_suffix = img_suffix.pop()
+        print('VOC数据集中图片后缀：', img_suffix)
         if not os.path.exists(voc_sets):
             raise Exception('VOC数据集不存在ImageSets/Main路径')
         else:
             file_lists = list(Path(voc_sets).iterdir())
             for file in file_lists:
                 img_ids = [x.strip() for x in open(file,'r').readlines()]
-                img_full_path = [os.path.join(JPEG, img_id+opt.ext) for img_id in img_ids]
+                img_full_path = [os.path.join(yolo_img_root, img_id+img_suffix) for img_id in img_ids]
                 file_to_write = os.path.join(yolo_root,file.name)
                 write_txt(file_to_write, img_full_path)
     else:
         print('从YOLO数据集中按比例随机分割数据集')
-        p = Path(JPEG)
-        files = []
-        for file in p.iterdir():
-            # name,sufix = file.name.split('.')
-            if file.name.split('.')[1]==opt.ext[1:]:
-                files.append(str(file))
-            # print(name, sufix)
+
+        files = [str(x) for x in Path(yolo_img_root).iterdir()]
         print('数据集长度:',len(files))
         files = shuffle(files)
         ratio = opt.test_ratio
