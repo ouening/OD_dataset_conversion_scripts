@@ -71,7 +71,7 @@ from sklearn.model_selection import train_test_split
 import sys
 import shutil
 from pathlib import Path
-
+from imageio import imread
 def counting_labels(anno_root,yolo_root):
     '''
     获取pascal voc格式数据集中的所有标签名
@@ -130,12 +130,19 @@ def convert_annotation(anno_root:str, image_id, classes, dest_yolo_dir='YOLOLabe
     out_file = open(os.path.join(dest_yolo_dir, image_id+'.txt'), 'w')
     tree=ET.parse(in_file)
     root = tree.getroot()
-    size = root.find('size')
-    w = int(size.find('width').text)
-    h = int(size.find('height').text)
+    try:
+        size = root.find('size')
+        w = int(size.find('width').text)
+        h = int(size.find('height').text)
+    except:
+        img_path = Path(anno_root).parent.joinpath('JPEGImages', image_id+img_suffix)
+        w,h = imread(img_path).shape[:2]
 
     for obj in root.iter('object'):
-        difficult = obj.find('difficult').text
+        try:
+            difficult = obj.find('difficult').text
+        except:
+            difficult = 1
         cls = obj.find('name').text
         if cls not in classes or int(difficult)==1:
             continue
@@ -229,9 +236,9 @@ if __name__ == '__main__':
         raise Exception(f'数据集图像路径{anno_root}不存在！')
     
     # 确定图像后缀
-    ext = check_files(anno_root, jpeg_root)
-    assert ext is not None, "请检查图像后缀是否正确！"
-
+    img_suffix = check_files(anno_root, jpeg_root)
+    assert img_suffix is not None, "请检查图像后缀是否正确！"
+    print('图像后缀：', img_suffix)
     #  YOLO数据集存储路径，YOLOFormat
     dest_yolo_dir = os.path.join(str(Path(voc_root).parent), Path(voc_root).stem+opt.yolo_dir)
     # 
@@ -283,19 +290,19 @@ if __name__ == '__main__':
         print('\n使用Pascal VOC ImageSet信息分割数据集')
         trainval_file = os.path.join(voc_root, 'ImageSets/Main/trainval.txt')
         trainval_name = [i.strip() for i in open(trainval_file,'r').readlines()]
-        trainval = [os.path.join(yolo_images,name+ext) for name in trainval_name]
+        trainval = [os.path.join(yolo_images,name+img_suffix) for name in trainval_name]
 
         train_file = os.path.join(voc_root, 'ImageSets/Main/train.txt')
         train_name = [i.strip() for i in open(train_file,'r').readlines()]
-        train = [os.path.join(yolo_images,name+ext) for name in train_name]
+        train = [os.path.join(yolo_images,name+img_suffix) for name in train_name]
 
         val_file = os.path.join(voc_root, 'ImageSets/Main/val.txt')
         val_name = [i.strip() for i in open(val_file,'r').readlines()]
-        val = [os.path.join(yolo_images,name+ext) for name in val_name]
+        val = [os.path.join(yolo_images,name+img_suffix) for name in val_name]
 
         test_file = os.path.join(voc_root, 'ImageSets/Main/test.txt')
         test_name = [i.strip() for i in open(test_file,'r').readlines()]
-        test = [os.path.join(yolo_images,name+ext) for name in test_name]
+        test = [os.path.join(yolo_images,name+img_suffix) for name in test_name]
         
         print('训练集数量: ',len(train_name))
         print('训练集验证集数量: ',len(trainval_name))
