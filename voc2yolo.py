@@ -72,6 +72,7 @@ import sys
 import shutil
 from pathlib import Path
 from imageio import imread
+
 def counting_labels(anno_root,yolo_root):
     '''
     获取pascal voc格式数据集中的所有标签名
@@ -142,13 +143,15 @@ def convert_annotation(anno_root:str, image_id, classes, dest_yolo_dir='YOLOLabe
         try:
             difficult = obj.find('difficult').text
         except:
-            difficult = 1
+            difficult = 0
         cls = obj.find('name').text
         if cls not in classes or int(difficult)==1:
             continue
         cls_id = classes.index(cls)
         xmlbox = obj.find('bndbox')
-        b = (float(xmlbox.find('xmin').text), float(xmlbox.find('xmax').text), float(xmlbox.find('ymin').text), float(xmlbox.find('ymax').text))
+        xmin,xmax,ymin,ymax = float(xmlbox.find('xmin').text), float(xmlbox.find('xmax').text), float(xmlbox.find('ymin').text), float(xmlbox.find('ymax').text)
+        assert xmin<xmax and ymin<ymax and xmin>=0 and ymin>=0, f"Box size error !: (xmin, ymin, xmax, ymax): {xmin, ymin, xmax, ymax}"
+        b = (xmin,xmax,ymin,ymax)
         bb = convert((w,h), b)
         out_file.write(str(cls_id) + " " + " ".join([str(a) for a in bb]) + '\n')
 
@@ -242,7 +245,8 @@ if __name__ == '__main__':
     #  YOLO数据集存储路径，YOLOFormat
     dest_yolo_dir = os.path.join(str(Path(voc_root).parent), Path(voc_root).stem+opt.yolo_dir)
     # 
-    image_ids = gen_image_ids(jpeg_root)
+    image_ids = [x.name for x in Path(jpeg_root).iterdir()]
+
     print('数据集长度：', len(image_ids))
 
     if not os.path.exists(dest_yolo_dir):
@@ -254,16 +258,15 @@ if __name__ == '__main__':
     create_dir(yolo_images)
 
     classes = counting_labels(anno_root,dest_yolo_dir)
-    images_path = [] # 图片的绝对路径
+    print('数据类别：', classes)
     length = len(image_ids)
 
     for idx, img in enumerate(image_ids):
         sys.stdout.write('\r>> Converting image %d/%d' % (
                     idx + 1, length))
         sys.stdout.flush()
-        # print('图片名称：', os.path.join(pwd, 'JPEGImages', img)) # 
-        images_path.append(os.path.join(voc_root, 'JPEGImages', img))
-        image_id = img[:-4] # 图像名称
+        image_id = img.split('.')[0]
+        # print(image_id)
 #        print('图像名称：', image_id)
         # 转换标签
         convert_annotation(anno_root, image_id, classes, dest_yolo_dir=yolo_labels)
