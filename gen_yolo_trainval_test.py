@@ -75,7 +75,7 @@ if __name__ == '__main__':
         
         img_suffix = set([x.suffix for x in Path(voc_img_root).iterdir()])
         if len(img_suffix) != 1:
-            raise Exception('VOC数据集中JPEGImages文件夹中的图片数量不均匀')
+            raise Exception('VOC数据集中JPEGImages文件夹中的图片格式不一致')
         img_suffix = img_suffix.pop()
         print('VOC数据集中图片后缀：', img_suffix)
         if not os.path.exists(voc_sets):

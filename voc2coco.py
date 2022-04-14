@@ -61,7 +61,7 @@ from typing import Dict, List
 from tqdm import tqdm
 import re
 from collections import Counter
-
+from imageio import imread
 def get_label2id(labels_path: str) -> Dict[str, int]:
     '''
     id is 1 start
@@ -86,9 +86,13 @@ def get_image_info(ann_path, annotation_root, extract_num_from_imgid=True):
         # 采用正则表达式，支持转换的文件命名：0001.png, cls_0021.png, cls0123.jpg, 00123abc.png等
         img_id = int(re.findall(r'\d+', img_id)[0])
 
-    size = annotation_root.find('size')
-    width = int(size.findtext('width'))
-    height = int(size.findtext('height'))
+    try:
+        size = annotation_root.find('size')
+        width = int(size.findtext('width'))
+        height = int(size.findtext('height'))
+    except:
+        img_path = Path(ann_path).parent.parent.joinpath('JPEGImages', filename)
+        width, height = imread(str(img_path)).shape[:2]
 
     image_info = {
         'file_name': filename,
