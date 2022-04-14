@@ -72,6 +72,7 @@ import sys
 import shutil
 from pathlib import Path
 from imageio import imread
+
 def counting_labels(anno_root,yolo_root):
     '''
     获取pascal voc格式数据集中的所有标签名
@@ -148,7 +149,9 @@ def convert_annotation(anno_root:str, image_id, classes, dest_yolo_dir='YOLOLabe
             continue
         cls_id = classes.index(cls)
         xmlbox = obj.find('bndbox')
-        b = (float(xmlbox.find('xmin').text), float(xmlbox.find('xmax').text), float(xmlbox.find('ymin').text), float(xmlbox.find('ymax').text))
+        xmin,xmax,ymin,ymax = float(xmlbox.find('xmin').text), float(xmlbox.find('xmax').text), float(xmlbox.find('ymin').text), float(xmlbox.find('ymax').text)
+        assert xmin<xmax and ymin<ymax and xmin>=0 and ymin>=0, f"Box size error !: (xmin, ymin, xmax, ymax): {xmin, ymin, xmax, ymax}"
+        b = (xmin,xmax,ymin,ymax)
         bb = convert((w,h), b)
         out_file.write(str(cls_id) + " " + " ".join([str(a) for a in bb]) + '\n')
 

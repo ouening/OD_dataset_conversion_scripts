@@ -110,7 +110,7 @@ class PascalVOC2CSV(object):
                     y1 = int(xmlbox.find('ymin').text)
                     x2 = int(xmlbox.find('xmax').text)
                     y2 = int(xmlbox.find('ymax').text)
-
+                    assert x1 < x2 and y1 < y2, 'x1 must be less than x2 and y1 must be less than y2'
                     self.annotations.append(
                                 [os.path.join(os.path.join(dirname, 'JPEGImages'),self.filename), 
                                 x1,y1,x2,y2,
