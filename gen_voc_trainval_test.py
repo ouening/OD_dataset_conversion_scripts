@@ -65,7 +65,7 @@ if __name__ == '__main__':
     mkdir(ImgSetsMain)
 
     files = [x.stem for x in Path(voc_jpeg).iterdir() if not x.stem.startswith('.')]
-    
+    print(files[:10])
     print('>>>随机划分VOC数据集')
     print('数据集长度:',len(files))
     files = shuffle(files)

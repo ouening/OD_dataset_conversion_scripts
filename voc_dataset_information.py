@@ -44,6 +44,7 @@ def load_dataset(xml_list, anno_root, savefig=True,img_name=''):
         sys.stdout.write('\r>> Converting image %d/%d' % (
                     idx+1, length))
         sys.stdout.flush()
+        # print(xml_file)
         xml = open(xml_file, encoding='utf-8')        
         tree=ET.parse(xml)
         root = tree.getroot()
@@ -221,7 +222,8 @@ if __name__ == '__main__':
             
             print(f'文件ImageSets/Main/{data_type}.txt不存在!')
             continue
-        xml_files = [x.strip() for x in open(txt,'r').readlines()]
+        # xml_files = [x.strip() for x in open(txt,'r').readlines()]
+        xml_files = [x.replace('\n','') for x in open(txt,'r').readlines()]
         xml_list = [os.path.join(anno_root, xml_name+'.xml') for xml_name in xml_files]
         df = load_dataset(xml_list, anno_root, savefig=True, img_name=data_type)
         df.to_csv(os.path.join(voc_stat,f'{data_type}_info.csv'), index=False)

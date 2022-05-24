@@ -337,7 +337,8 @@ if __name__ == '__main__':
     # 利用VOC ImageSets数据划分信息，注意ImageSets/main/train.txt文件只记录图片名称，没有后缀
     # 所有图片名称
     files = [x.stem for x in Path(voc_jpeg).iterdir() if not x.stem.startswith('.')]
-    
+    # files = list(Path(voc_jpeg).iterdir())
+    # files = [str(x).replace('.jpg','') for x in files]
     print('数据集长度:',len(files))
     assert os.path.exists(os.path.join(voc_root, 'ImageSets/Main/trainval.txt'))
     if os.path.exists(os.path.join(voc_root, 'ImageSets/Main/trainval.txt')):
@@ -347,28 +348,30 @@ if __name__ == '__main__':
         if opt.rename:
             trainval = [names_to_id_dict[i.strip()] for i in open(trainval_file,'r').readlines()]
         else:
-            trainval = [i.strip() for i in open(trainval_file,'r').readlines()]
+            # trainval = [i.strip() for i in open(trainval_file,'r').readlines()] 
+            trainval = [i.replace('\n','') for i in open(trainval_file,'r').readlines()]
         # trainval = [os.path.join(os.path.join(coco_root,'trainval'),name) for name in trainval_name]
 
         train_file = os.path.join(voc_root, 'ImageSets/Main/train.txt')
         if opt.rename:
             train = [names_to_id_dict[i.strip()] for i in open(train_file,'r').readlines()]
         else:
-            train = [i.strip() for i in open(train_file,'r').readlines()]
+            # train = [i.strip() for i in open(train_file,'r').readlines()]
+            train = [i.replace('\n','') for i in open(train_file,'r').readlines()]
         # train = [os.path.join(os.path.join(coco_root,'train'),name) for name in train_name]
 
         val_file = os.path.join(voc_root, 'ImageSets/Main/val.txt')
         if opt.rename:
             val = [names_to_id_dict[i.strip()] for i in open(val_file,'r').readlines()]
         else:
-            val = [i.strip() for i in open(val_file,'r').readlines()]
+            val = [i.replace('\n','')  for i in open(val_file,'r').readlines()]
         # val = [os.path.join(os.path.join(coco_root,'val'),name) for name in val_name]
 
         test_file = os.path.join(voc_root, 'ImageSets/Main/test.txt')
         if opt.rename:
             test = [names_to_id_dict[i.strip()] for i in open(test_file,'r').readlines()]
         else:
-            test = [i.strip() for i in open(test_file,'r').readlines()]
+            test = [i.replace('\n','')  for i in open(test_file,'r').readlines()]
         # test = [os.path.join(os.path.join(coco_root,'test'),name) for name in test_name]
         
         print('>>>训练集数量: ',len(train))
