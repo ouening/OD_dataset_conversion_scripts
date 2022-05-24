@@ -64,8 +64,8 @@ def load_dataset(xml_list, anno_root, savefig=True,img_name=''):
         for obj in root.iter('object'):
             xmin = int(float(obj.findtext("bndbox/xmin")))
             ymin = int(float(obj.findtext("bndbox/ymin")))
-            xmax = int(float(obj.findtext("bndbox/xmax")))
-            ymax = int(float(obj.findtext("bndbox/ymax")))
+            xmax = int(float(obj.findtext("bndbox/xmax")))+1
+            ymax = int(float(obj.findtext("bndbox/ymax")))+1
             assert xmin < xmax and ymin < ymax, 'xmin, ymin, xmax, ymax must be in ascending order'
             value = (
                 filename,
