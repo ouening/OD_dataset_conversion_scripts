@@ -168,7 +168,7 @@ def create_dir(ROOT:str):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--voc-root', type=str, required=True, 
+    parser.add_argument('--voc-root', type=str, required=False, 
         help='VOC格式数据集根目录，该目录下必须包含JPEGImages,Annotationshe ImageSets这3个文件夹，\
             在ImageSets文件夹下还要有Main/trainval.txt等文件')
     parser.add_argument('--img_dir', type=str, required=False, 
@@ -219,7 +219,6 @@ if __name__ == '__main__':
         print(f"\n\n=========统计{data_type}数据信息============")
         txt = os.path.join(voc_root, f'ImageSets/Main/{data_type}.txt')
         if not os.path.exists(txt):
-            
             print(f'文件ImageSets/Main/{data_type}.txt不存在!')
             continue
         # xml_files = [x.strip() for x in open(txt,'r').readlines()]
